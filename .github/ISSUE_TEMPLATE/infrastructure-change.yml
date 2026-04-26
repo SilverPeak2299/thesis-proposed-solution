@@ -1,0 +1,50 @@
+name: Infrastructure change
+description: Record a governed infrastructure or platform-control change.
+title: "[Infra]: "
+labels:
+  - infrastructure
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Short infrastructure or platform control change.
+      placeholder: Add MWAA environment module skeleton
+    validations:
+      required: true
+  - type: checkboxes
+    id: infrastructure_area
+    attributes:
+      label: Area
+      options:
+        - label: Terraform
+        - label: IAM
+        - label: MWAA
+        - label: Glue
+        - label: OpenMetadata
+        - label: S3 / Iceberg
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Affected requirements
+      options:
+        - label: R1 Governance Accountability
+        - label: R2 Information Security Assurance
+        - label: R3 Operational Risk Control
+        - label: R4 Continuous Control Monitoring
+        - label: R5 End-to-End Evidence Chain
+  - type: textarea
+    id: state_and_evidence
+    attributes:
+      label: State and evidence impact
+      description: Describe the infrastructure state reference and evidence this change should produce.
+      placeholder: Captures Terraform state version and ties it to the release manifest
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List concise completion checks.
+    validations:
+      required: true

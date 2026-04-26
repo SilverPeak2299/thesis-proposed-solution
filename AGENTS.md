@@ -20,13 +20,14 @@ As implementation begins, keep the planned structure from the implementation pla
 
 ## Build, Test, and Development Commands
 
-There is no application build system yet. For now, contributors should use:
+Stage 1 now includes a minimal Python project shape and workflow placeholders.
+Useful local commands:
 
 - `git status`: review local changes before and after edits
 - `rg --files .`: inspect the repo quickly
-- `sed -n '1,160p' docs/implementation-contract.md`: review key architecture decisions
-
-When code is added, document the canonical test and build commands here rather than inventing per-branch workflows.
+- `sed -n '1,200p' docs/implementation-contract.md`: review key architecture decisions
+- `python -m pytest`: run shared tests once test modules are added
+- `ruff check .`: run Python linting once Ruff is installed in the environment
 
 ## Coding Style & Naming Conventions
 
@@ -41,13 +42,14 @@ Keep naming aligned to the architecture vocabulary: `mwaa`, `glue`, `gold`, `ice
 
 ## Testing Guidelines
 
-This repo is currently document-first, so testing is review-based:
+This repo is still scaffold-first, so testing is mostly review-based:
 
 - verify changes against `docs/implementation-contract.md`
 - keep `docs/control-matrix.md` and `docs/implementation-plan.md` consistent
 - prefer quantitative evaluation definitions where possible
 
-When tests are introduced, place them near the relevant subsystem and use names like `test_run_manifest.py` or `release_policy_test.rego`.
+When tests are added, place them in `tests/` or beside the relevant policy files
+and use names like `test_run_manifest.py` or `release_policy_test.rego`.
 
 ## Commit & Pull Request Guidelines
 

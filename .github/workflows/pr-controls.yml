@@ -1,0 +1,15 @@
+name: PR Controls
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stage 1 placeholder
+        run: |
+          echo "Reserved for PR controls."
+          echo "Intended scope: issue linkage, tests, security checks, and OPA policy gates."

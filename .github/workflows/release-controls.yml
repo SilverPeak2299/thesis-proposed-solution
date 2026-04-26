@@ -1,0 +1,16 @@
+name: Release Controls
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stage 1 placeholder
+        run: |
+          echo "Reserved for release controls."
+          echo "Intended scope: packaging, release manifest generation, and attestation linkage."

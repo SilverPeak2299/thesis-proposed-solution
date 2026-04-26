@@ -113,6 +113,11 @@ Also define:
 - issue template for change requests
 - CODEOWNERS
 
+Status:
+
+- Completed by the Stage 1 repository scaffold, governance templates, workflow
+  placeholders, and shared Python package layout
+
 Why here:
 
 - R1 starts at change management, not at runtime.

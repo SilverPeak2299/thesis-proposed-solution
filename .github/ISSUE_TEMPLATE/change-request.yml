@@ -1,0 +1,50 @@
+name: Change request
+description: Record a governed pipeline or control-plane change.
+title: "[Change]: "
+labels:
+  - change-request
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: Short change description.
+      placeholder: Add release manifest structure for attested deployments
+    validations:
+      required: true
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase
+      options:
+        - Stage 1
+        - Stage 2
+        - Stage 3
+        - Stage 4
+    validations:
+      required: true
+  - type: checkboxes
+    id: requirements
+    attributes:
+      label: Affected requirements
+      options:
+        - label: R1 Governance Accountability
+        - label: R2 Information Security Assurance
+        - label: R3 Operational Risk Control
+        - label: R4 Continuous Control Monitoring
+        - label: R5 End-to-End Evidence Chain
+  - type: textarea
+    id: expected_evidence
+    attributes:
+      label: Expected evidence impact
+      description: State what evidence, metadata, or traceability this change should add or improve.
+      placeholder: Adds release manifest linkage between CI run, attestation, and deployable assets
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List concise completion checks.
+    validations:
+      required: true

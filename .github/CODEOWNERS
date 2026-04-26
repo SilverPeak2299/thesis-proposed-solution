@@ -1,0 +1,18 @@
+# Stage 1 ownership model
+# One current owner is used now, but the sections below are separated so code
+# owner and data owner responsibilities can split later without redesign.
+
+* @SilverPeak2299
+
+# Control plane and governance
+/docs/ @SilverPeak2299
+/.github/ @SilverPeak2299
+/policies/ @SilverPeak2299
+/infra/ @SilverPeak2299
+
+# Runtime and data-facing assets
+/pipelines/ @SilverPeak2299
+/jobs/ @SilverPeak2299
+/contracts/ @SilverPeak2299
+/src/ @SilverPeak2299
+/tests/ @SilverPeak2299

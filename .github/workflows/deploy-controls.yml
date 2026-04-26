@@ -1,0 +1,13 @@
+name: Deploy Controls
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stage 1 placeholder
+        run: |
+          echo "Reserved for deploy controls."
+          echo "Intended scope: governed deployment of MWAA assets and referenced Glue job versions."
