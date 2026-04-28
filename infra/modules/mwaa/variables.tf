@@ -89,6 +89,12 @@ variable "airflow_configuration" {
   default     = {}
 }
 
+variable "glue_pass_role_arns" {
+  description = "Glue IAM role ARNs that the MWAA execution role is allowed to pass to AWS Glue."
+  type        = list(string)
+  default     = []
+}
+
 variable "source_cidr_for_webserver" {
   description = "Unused placeholder for future MWAA ingress tightening."
   type        = string

@@ -15,7 +15,7 @@ data "aws_iam_policy_document" "mwaa_assume_role" {
   }
 }
 
-data "aws_iam_policy_document" "execution_policy" {
+data "aws_iam_policy_document" "execution_policy_base" {
   statement {
     sid    = "MwaaArtifactBucketAccess"
     effect = "Allow"
@@ -70,6 +70,32 @@ data "aws_iam_policy_document" "execution_policy" {
   }
 }
 
+data "aws_iam_policy_document" "execution_policy_passrole" {
+  count = length(var.glue_pass_role_arns) == 0 ? 0 : 1
+
+  statement {
+    sid    = "MwaaPassGlueRuntimeRoles"
+    effect = "Allow"
+    actions = [
+      "iam:PassRole",
+    ]
+    resources = var.glue_pass_role_arns
+
+    condition {
+      test     = "StringEquals"
+      variable = "iam:PassedToService"
+      values   = ["glue.amazonaws.com"]
+    }
+  }
+}
+
+data "aws_iam_policy_document" "execution_policy" {
+  source_policy_documents = compact([
+    data.aws_iam_policy_document.execution_policy_base.json,
+    try(data.aws_iam_policy_document.execution_policy_passrole[0].json, null),
+  ])
+}
+
 resource "aws_iam_role" "execution" {
   name               = "${local.environment_name}-execution"
   assume_role_policy = data.aws_iam_policy_document.mwaa_assume_role.json
@@ -100,6 +126,13 @@ resource "aws_security_group" "this" {
   tags = merge(var.tags, {
     Name = "${local.environment_name}-sg"
   })
+}
+
+resource "aws_vpc_security_group_ingress_rule" "self" {
+  security_group_id            = aws_security_group.this.id
+  referenced_security_group_id = aws_security_group.this.id
+  ip_protocol                  = "-1"
+  description                  = "Required self-referencing ingress for MWAA component communication."
 }
 
 resource "aws_mwaa_environment" "this" {

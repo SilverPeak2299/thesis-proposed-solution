@@ -101,6 +101,7 @@ module "mwaa" {
   requirements_s3_path      = var.mwaa_requirements_s3_path
   startup_script_s3_path    = var.mwaa_startup_script_s3_path
   airflow_configuration     = var.mwaa_airflow_configuration
+  glue_pass_role_arns       = [module.glue.job_role_arn, module.glue.crawler_role_arn]
   source_cidr_for_webserver = module.network.vpc_cidr
   tags                      = local.common_tags
 }
