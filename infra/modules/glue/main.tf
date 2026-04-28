@@ -46,7 +46,7 @@ resource "aws_iam_role_policy_attachment" "service_role" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSGlueServiceRole"
 }
 
-data "aws_iam_policy_document" "runtime_access" {
+data "aws_iam_policy_document" "runtime_access_base" {
   statement {
     sid    = "GlueStandardBucketAccess"
     effect = "Allow"
@@ -74,7 +74,7 @@ data "aws_iam_policy_document" "runtime_access" {
     ]
     resources = [
       var.s3tables_bucket_arn,
-      "${var.s3tables_bucket_arn}/*",
+      "${var.s3tables_bucket_arn}/table/*",
     ]
   }
 
@@ -105,6 +105,10 @@ data "aws_iam_policy_document" "runtime_access" {
     ]
     resources = ["*"]
   }
+}
+
+data "aws_iam_policy_document" "runtime_access_secrets" {
+  count = length(var.secret_arns) == 0 ? 0 : 1
 
   statement {
     sid    = "GlueSecretReadAccess"
@@ -114,6 +118,13 @@ data "aws_iam_policy_document" "runtime_access" {
     ]
     resources = var.secret_arns
   }
+}
+
+data "aws_iam_policy_document" "runtime_access" {
+  source_policy_documents = compact([
+    data.aws_iam_policy_document.runtime_access_base.json,
+    try(data.aws_iam_policy_document.runtime_access_secrets[0].json, null),
+  ])
 }
 
 resource "aws_iam_role_policy" "runtime_access" {
