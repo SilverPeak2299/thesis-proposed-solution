@@ -1,0 +1,42 @@
+{
+  "dataset": "edgar_curated",
+  "description": "Deterministic curated contract for a governed EDGAR filing slice.",
+  "required_fields": [
+    "accession_number",
+    "company_cik"
+  ],
+  "columns": [
+    {
+      "name": "accession_number",
+      "type": "string"
+    },
+    {
+      "name": "company_cik",
+      "type": "string"
+    },
+    {
+      "name": "company_name",
+      "type": "string"
+    },
+    {
+      "name": "form_type",
+      "type": "string"
+    },
+    {
+      "name": "filing_date",
+      "type": "string"
+    },
+    {
+      "name": "source_url",
+      "type": "string"
+    },
+    {
+      "name": "dataset_date",
+      "type": "string"
+    },
+    {
+      "name": "run_id",
+      "type": "string"
+    }
+  ]
+}

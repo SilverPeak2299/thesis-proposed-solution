@@ -1,0 +1,82 @@
+{
+  "change_ref": "issue/EDGAR-1",
+  "completed_at": "2026-04-26T11:14:24+00:00",
+  "curated_outputs": {
+    "contract_path": "/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/etl-pipeline/contracts/edgar_curated_contract.json",
+    "curated_path": ".local-data/object-storage/local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl",
+    "curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl"
+  },
+  "dataset_date": "2024-01-31",
+  "dataset_version": "9b5fd26a2005c02b",
+  "gold_namespace": "edgar",
+  "gold_table": "filings",
+  "gold_table_bucket": "local-gold-bucket",
+  "gold_write_result": {
+    "content_digest": "b995b70206b3c076ec79d3732f6f38c26a462341be889f30898d45a575911a91",
+    "dataset_date": "2024-01-31",
+    "records_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=9b5fd26a2005c02b/records.jsonl",
+    "row_count": 2,
+    "source_curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl",
+    "table_uri": "s3tables://local-gold-bucket/edgar/filings",
+    "write_mode": "append",
+    "write_result_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=9b5fd26a2005c02b/write-result.json"
+  },
+  "job_refs": {
+    "ingest": "jobs/ingest/edgar_ingest.py",
+    "promote": "jobs/promote/promote_to_s3_table.py",
+    "quality": "jobs/quality/curated_quality_gate.py",
+    "transform": "jobs/transform/edgar_transform.py"
+  },
+  "pipeline_id": "edgar_governed_pipeline",
+  "quality_result": {
+    "change_ref": "issue/EDGAR-1",
+    "checks": [
+      {
+        "details": ".local-data/object-storage/local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl",
+        "name": "curated_output_exists",
+        "passed": true
+      },
+      {
+        "details": [],
+        "name": "schema_matches_contract",
+        "passed": true
+      },
+      {
+        "details": 2,
+        "name": "row_count_gt_zero",
+        "passed": true
+      },
+      {
+        "details": [],
+        "name": "required_ids_non_null",
+        "passed": true
+      }
+    ],
+    "contract_path": "/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/etl-pipeline/contracts/edgar_curated_contract.json",
+    "curated_path": ".local-data/object-storage/local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl",
+    "curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-check-run-3/curated-records.jsonl",
+    "failed_checks": [],
+    "release_manifest_ref": "release-manifests/dev-edgar-v1.json",
+    "row_count": 2,
+    "run_id": "cli-check-run-3",
+    "status": "passed",
+    "terraform_state_ref": "terraform-state/dev/serial-0001"
+  },
+  "raw_outputs": {
+    "normalized_path": ".local-data/object-storage/local-raw/edgar/raw/dataset_date=2024-01-31/run_id=cli-check-run-3/normalized-records.jsonl",
+    "normalized_uri": "s3://local-raw/edgar/raw/dataset_date=2024-01-31/run_id=cli-check-run-3/normalized-records.jsonl",
+    "payload_path": ".local-data/object-storage/local-raw/edgar/raw/dataset_date=2024-01-31/run_id=cli-check-run-3/payload.json",
+    "payload_uri": "s3://local-raw/edgar/raw/dataset_date=2024-01-31/run_id=cli-check-run-3/payload.json"
+  },
+  "release_manifest_ref": "release-manifests/dev-edgar-v1.json",
+  "row_counts": {
+    "curated_records": 2,
+    "promoted_records": 2,
+    "raw_records": 2
+  },
+  "run_id": "cli-check-run-3",
+  "source_ref": "/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/etl-pipeline/tests/fixtures/edgar_sample/submissions.json",
+  "started_at": "2026-04-26T11:14:24+00:00",
+  "status": "succeeded",
+  "terraform_state_ref": "terraform-state/dev/serial-0001"
+}

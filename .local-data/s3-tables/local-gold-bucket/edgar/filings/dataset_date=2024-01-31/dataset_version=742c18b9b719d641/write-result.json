@@ -1,0 +1,10 @@
+{
+  "content_digest": "457ea6c9fb910bdf0a7f772939c410581dd45bc081d38567f85846a8a5e9a4a4",
+  "dataset_date": "2024-01-31",
+  "records_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=742c18b9b719d641/records.jsonl",
+  "row_count": 2,
+  "source_curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-replay-run/curated-records.jsonl",
+  "table_uri": "s3tables://local-gold-bucket/edgar/filings",
+  "write_mode": "append",
+  "write_result_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=742c18b9b719d641/write-result.json"
+}

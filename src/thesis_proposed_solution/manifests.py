@@ -1,0 +1,200 @@
+"""Run manifest construction, persistence, and validation."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+import hashlib
+import json
+from pathlib import Path
+from typing import Any
+
+
+REQUIRED_MANIFEST_FIELDS = [
+    "run_id",
+    "pipeline_id",
+    "dataset_date",
+    "source_ref",
+    "release_manifest_ref",
+    "terraform_state_ref",
+    "change_ref",
+    "job_refs",
+    "raw_outputs",
+    "curated_outputs",
+    "gold_table_bucket",
+    "gold_namespace",
+    "gold_table",
+    "dataset_version",
+    "gold_write_result",
+    "quality_result",
+    "row_counts",
+    "started_at",
+    "completed_at",
+    "status",
+]
+
+
+def canonical_json(data: Any) -> str:
+    return json.dumps(data, sort_keys=True, separators=(",", ":"))
+
+
+def utc_now_iso() -> str:
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def create_initial_manifest(
+    *,
+    run_id: str,
+    pipeline_id: str,
+    dataset_date: str,
+    source_ref: str,
+    release_manifest_ref: str,
+    terraform_state_ref: str,
+    change_ref: str,
+    gold_table_bucket: str,
+    gold_namespace: str,
+    gold_table: str,
+    job_refs: dict[str, str],
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id,
+        "pipeline_id": pipeline_id,
+        "dataset_date": dataset_date,
+        "source_ref": source_ref,
+        "release_manifest_ref": release_manifest_ref,
+        "terraform_state_ref": terraform_state_ref,
+        "change_ref": change_ref,
+        "job_refs": deepcopy(job_refs),
+        "raw_outputs": {},
+        "curated_outputs": {},
+        "gold_table_bucket": gold_table_bucket,
+        "gold_namespace": gold_namespace,
+        "gold_table": gold_table,
+        "dataset_version": None,
+        "gold_write_result": None,
+        "quality_result": None,
+        "row_counts": {},
+        "started_at": utc_now_iso(),
+        "completed_at": None,
+        "status": "running",
+    }
+
+
+def write_manifest(manifest: dict[str, Any], output_path: str | Path) -> None:
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, sort_keys=True)
+        handle.write("\n")
+
+
+def load_manifest(manifest_path: str | Path) -> dict[str, Any]:
+    with Path(manifest_path).open("r", encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def update_manifest(manifest: dict[str, Any], **updates: Any) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated.update(updates)
+    return updated
+
+
+def record_ingest_outputs(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["raw_outputs"] = {
+        "payload_uri": summary["raw_payload_uri"],
+        "payload_path": summary["raw_payload_path"],
+        "normalized_uri": summary["raw_records_uri"],
+        "normalized_path": summary["raw_records_path"],
+    }
+    updated["row_counts"]["raw_records"] = summary["row_count"]
+    return updated
+
+
+def record_transform_outputs(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["curated_outputs"] = {
+        "curated_uri": summary["curated_uri"],
+        "curated_path": summary["curated_path"],
+        "contract_path": summary["contract_path"],
+    }
+    updated["row_counts"]["curated_records"] = summary["row_count"]
+    return updated
+
+
+def record_quality_result(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["quality_result"] = deepcopy(summary)
+    return updated
+
+
+def record_promotion_result(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["dataset_version"] = summary["dataset_version"]
+    updated["gold_write_result"] = deepcopy(summary["gold_write_result"])
+    updated["row_counts"]["promoted_records"] = summary["row_count"]
+    return updated
+
+
+def finalize_manifest(manifest: dict[str, Any], status: str) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["status"] = status
+    updated["completed_at"] = utc_now_iso()
+    return updated
+
+
+def compute_dataset_version(
+    *,
+    gold_table_bucket: str,
+    gold_namespace: str,
+    gold_table: str,
+    write_result: dict[str, Any],
+) -> str:
+    payload = {
+        "gold_table_bucket": gold_table_bucket,
+        "gold_namespace": gold_namespace,
+        "gold_table": gold_table,
+        "write_result": write_result,
+    }
+    digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
+    return digest[:16]
+
+
+def validate_manifest(manifest: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    for field_name in REQUIRED_MANIFEST_FIELDS:
+        if field_name not in manifest:
+            errors.append(f"missing field: {field_name}")
+
+    for field_name in [
+        "run_id",
+        "pipeline_id",
+        "dataset_date",
+        "source_ref",
+        "release_manifest_ref",
+        "terraform_state_ref",
+        "change_ref",
+        "gold_table_bucket",
+        "gold_namespace",
+        "gold_table",
+        "started_at",
+        "status",
+    ]:
+        if not manifest.get(field_name):
+            errors.append(f"empty field: {field_name}")
+
+    quality_result = manifest.get("quality_result")
+    if quality_result is None:
+        errors.append("quality_result is required")
+
+    if manifest.get("status") == "succeeded":
+        if not manifest.get("dataset_version"):
+            errors.append("dataset_version is required for successful runs")
+        if not manifest.get("gold_write_result"):
+            errors.append("gold_write_result is required for successful runs")
+
+    if manifest.get("status") == "failed_quality" and manifest.get("dataset_version") is not None:
+        errors.append("dataset_version must be null for failed quality runs")
+
+    return errors
