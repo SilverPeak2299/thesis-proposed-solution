@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from uuid import uuid4
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -34,7 +34,6 @@ from thesis_proposed_solution.runtime_config import (
     load_runtime_config,
 )
 from thesis_proposed_solution.storage import build_manifest_target, write_json_target
-
 
 JOB_REFS = {
     "ingest": "jobs/ingest/edgar_ingest.py",

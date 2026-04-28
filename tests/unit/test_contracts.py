@@ -9,7 +9,6 @@ from thesis_proposed_solution.contracts import (
     required_fields_populated,
 )
 
-
 CONTRACT_PATH = Path(__file__).resolve().parents[2] / "contracts" / "edgar_curated_contract.json"
 
 

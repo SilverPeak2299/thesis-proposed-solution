@@ -8,7 +8,7 @@ Governed changes use the branch pattern:
 
 Example:
 
-- `123-add-release-manifest`
+- `123/add-release-manifest`
 
 ## Pull Requests
 

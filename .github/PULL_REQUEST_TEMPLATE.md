@@ -9,7 +9,7 @@ Describe the change in 2-4 sentences.
 
 ## Requirements / Phase
 
-- Phase: `Stage 1|Stage 2|Stage 3|Stage 4`
+- Phase: `Phase 2|Phase 3|Phase 4|Phase 5|Phase 6|Phase 7|Phase 8|Phase 9|Phase 10`
 - Requirements: `R1, R2, R3, R4, R5`
 
 ## Impact

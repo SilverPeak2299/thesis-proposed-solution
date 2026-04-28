@@ -5,11 +5,134 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
-  placeholder:
+  governance-metadata:
     runs-on: ubuntu-latest
     steps:
-      - name: Stage 1 placeholder
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build governance policy input
         run: |
-          echo "Reserved for PR controls."
-          echo "Intended scope: issue linkage, tests, security checks, and OPA policy gates."
+          mkdir -p build/pr-controls
+          python scripts/build_pr_governance_input.py \
+            --event-path "$GITHUB_EVENT_PATH" \
+            --output build/pr-controls/pr-governance-input.json
+
+      - name: Set up OPA
+        uses: open-policy-agent/setup-opa@v2
+        with:
+          version: latest
+
+      - name: Evaluate change gate policy
+        run: |
+          opa eval \
+            --format=json \
+            --data policies/change_gates \
+            --input build/pr-controls/pr-governance-input.json \
+            'data.thesis.change_gates.deny' \
+            > build/pr-controls/opa-change-gates.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import sys
+
+          payload = json.loads(Path("build/pr-controls/opa-change-gates.json").read_text())
+          deny = payload["result"][0]["expressions"][0]["value"]
+          if deny:
+              print("OPA change gates failed:")
+              for message in deny:
+                  print(f"- {message}")
+              sys.exit(1)
+          print("OPA change gates passed.")
+          PY
+
+      - name: Upload governance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-governance-evidence
+          path: build/pr-controls/pr-governance-input.json
+
+  python-runtime-controls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lint dependencies
+        run: python -m pip install --upgrade pip ruff
+
+      - name: Prepare workflow artifact directory
+        run: mkdir -p build/pr-controls
+
+      - name: Lint Python sources
+        run: ruff check src scripts jobs pipelines tests
+
+      - name: Run Python tests
+        run: python -m pytest --junitxml build/pr-controls/pytest.xml
+
+      - name: Run governed local ETL smoke flow
+        run: |
+          python scripts/generate_runtime_config.py --output build/pr-controls/runtime-config.json
+          python scripts/run_local_etl.py \
+            --config build/pr-controls/runtime-config.json \
+            --run-id ci-pr-smoke \
+            > build/pr-controls/manual-run-output.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("build/pr-controls/manual-run-output.json").read_text())
+          Path("build/pr-controls/manual-run-manifest-path.txt").write_text(
+              payload["manifest_path"] + "\n",
+              encoding="utf-8",
+          )
+          print(payload["manifest_path"])
+          PY
+          python scripts/validate_run_manifest.py \
+            "$(cat build/pr-controls/manual-run-manifest-path.txt)" \
+            > build/pr-controls/manual-run-manifest-validation.json
+
+      - name: Upload Python and runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-python-runtime-evidence
+          path: build/pr-controls
+
+  terraform-controls:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/envs/dev
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive .
+        working-directory: infra
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false
+
+      - name: Validate Terraform configuration
+        run: terraform validate

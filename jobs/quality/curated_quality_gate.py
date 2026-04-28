@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 SRC_DIR = Path(__file__).resolve().parents[2] / "src"
@@ -18,8 +18,11 @@ from thesis_proposed_solution.contracts import (
     required_fields_populated,
 )
 from thesis_proposed_solution.runtime_config import ObjectStorageConfig
-from thesis_proposed_solution.storage import build_curated_target, read_json_lines_target, target_exists
-
+from thesis_proposed_solution.storage import (
+    build_curated_target,
+    read_json_lines_target,
+    target_exists,
+)
 
 DEFAULT_CONTRACT_PATH = str(Path(__file__).resolve().parents[2] / "contracts" / "edgar_curated_contract.json")
 

@@ -5,7 +5,6 @@ from pathlib import Path
 
 from jobs.quality.curated_quality_gate import evaluate_quality
 
-
 CONTRACT_PATH = Path(__file__).resolve().parents[2] / "contracts" / "edgar_curated_contract.json"
 
 

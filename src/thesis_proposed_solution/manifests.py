@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import hashlib
 import json
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
-
 
 REQUIRED_MANIFEST_FIELDS = [
     "run_id",

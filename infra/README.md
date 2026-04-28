@@ -47,7 +47,7 @@ infra/
 
 ## Entry point
 
-The current root module is [infra/envs/dev](/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/infra-branch/infra/envs/dev).
+The current root module is [infra/envs/dev](/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/infra/envs/dev).
 
 Typical workflow:
 

@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import json
+import sys
 from dataclasses import dataclass
 from datetime import datetime
-import json
 from pathlib import Path
-import sys
 from typing import Any, Mapping
 
 SRC_DIR = Path(__file__).resolve().parents[1] / "src"
