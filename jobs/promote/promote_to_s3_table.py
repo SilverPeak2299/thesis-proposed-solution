@@ -19,6 +19,7 @@ from thesis_proposed_solution.storage import (
     build_curated_target,
     build_gold_table_directory,
     build_gold_table_uri,
+    read_json_lines_target,
 )
 
 
@@ -38,12 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--change-ref", required=True)
     parser.add_argument("--local-base-dir", default=".local-data/object-storage")
     parser.add_argument("--local-tables-dir", default=".local-data/s3-tables")
+    parser.add_argument("--storage-mode", choices=("local", "s3"), default="local")
     return parser
-
-
-def _load_json_lines(input_path: Path) -> list[dict[str, Any]]:
-    with input_path.open("r", encoding="utf-8") as handle:
-        return [json.loads(line) for line in handle if line.strip()]
 
 
 def _write_json_lines(output_path: Path, records: list[dict[str, Any]]) -> None:
@@ -63,6 +60,7 @@ def run_promotion(args: argparse.Namespace) -> dict[str, Any]:
         manifest_bucket=args.manifest_bucket,
         manifest_prefix=args.manifest_prefix,
         local_base_dir=Path(args.local_base_dir),
+        storage_mode=args.storage_mode,
     )
     gold_config = GoldTableConfig(
         gold_table_bucket=args.gold_table_bucket,
@@ -76,7 +74,7 @@ def run_promotion(args: argparse.Namespace) -> dict[str, Any]:
         dataset_date=args.dataset_date,
         run_id=args.run_id,
     )
-    records = _load_json_lines(curated_target.local_path)
+    records = read_json_lines_target(curated_target)
     promoted_records = [{key: value for key, value in record.items() if key != "run_id"} for record in records]
     content_digest = hashlib.sha256(canonical_json(promoted_records).encode("utf-8")).hexdigest()
     version_input = {
@@ -112,7 +110,7 @@ def run_promotion(args: argparse.Namespace) -> dict[str, Any]:
         "run_id": args.run_id,
         "dataset_date": args.dataset_date,
         "curated_uri": curated_target.uri,
-        "curated_path": str(curated_target.local_path),
+        "curated_path": str(curated_target.local_path) if curated_target.local_path else None,
         "gold_table_bucket": gold_config.gold_table_bucket,
         "gold_namespace": gold_config.gold_namespace,
         "gold_table": gold_config.gold_table,
@@ -127,7 +125,7 @@ def run_promotion(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    print(json.dumps(run_promotion(args), indent=2, sort_keys=True))
+    print(json.dumps(run_promotion(args), sort_keys=True))
     return 0
 
 

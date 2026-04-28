@@ -44,6 +44,7 @@ def build_sample_config(source_uri: str, dataset_date: str) -> PipelineRuntimeCo
             manifest_bucket="local-manifests",
             manifest_prefix="governed-runs",
             local_base_dir=Path(".local-data/object-storage"),
+            storage_mode="local",
         ),
         gold_table=GoldTableConfig(
             gold_table_bucket="local-gold-bucket",

@@ -18,7 +18,7 @@ from thesis_proposed_solution.contracts import (
     required_fields_populated,
 )
 from thesis_proposed_solution.runtime_config import ObjectStorageConfig
-from thesis_proposed_solution.storage import build_curated_target
+from thesis_proposed_solution.storage import build_curated_target, read_json_lines_target, target_exists
 
 
 DEFAULT_CONTRACT_PATH = str(Path(__file__).resolve().parents[2] / "contracts" / "edgar_curated_contract.json")
@@ -37,29 +37,37 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--change-ref", required=True)
     parser.add_argument("--contract-path", default=DEFAULT_CONTRACT_PATH)
     parser.add_argument("--local-base-dir", default=".local-data/object-storage")
+    parser.add_argument("--storage-mode", choices=("local", "s3"), default="local")
     return parser
 
 
-def _load_json_lines(input_path: Path) -> list[dict[str, Any]]:
-    with input_path.open("r", encoding="utf-8") as handle:
-        return [json.loads(line) for line in handle if line.strip()]
-
-
-def evaluate_quality(curated_path: Path, contract_path: str | Path, run_id: str) -> dict[str, Any]:
+def evaluate_quality(
+    curated_target_or_path,
+    contract_path: str | Path,
+    run_id: str,
+) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     failed_checks: list[str] = []
-    curated_exists = curated_path.exists()
+    if isinstance(curated_target_or_path, Path):
+        curated_exists = curated_target_or_path.exists()
+        location_hint = str(curated_target_or_path)
+        records: list[dict[str, Any]] = []
+        if curated_exists:
+            with curated_target_or_path.open("r", encoding="utf-8") as handle:
+                records = [json.loads(line) for line in handle if line.strip()]
+    else:
+        curated_exists = target_exists(curated_target_or_path)
+        location_hint = curated_target_or_path.location_hint
+        records = read_json_lines_target(curated_target_or_path) if curated_exists else []
+
     checks.append(
         {
             "name": "curated_output_exists",
             "passed": curated_exists,
-            "details": str(curated_path),
+            "details": location_hint,
         }
     )
-    records: list[dict[str, Any]] = []
     contract = load_contract(contract_path)
-    if curated_exists:
-        records = _load_json_lines(curated_path)
 
     schema_matches = False
     schema_errors: list[str] = []
@@ -117,15 +125,16 @@ def run_quality_gate(args: argparse.Namespace) -> dict[str, Any]:
         manifest_bucket=args.manifest_bucket,
         manifest_prefix=args.manifest_prefix,
         local_base_dir=Path(args.local_base_dir),
+        storage_mode=args.storage_mode,
     )
     curated_target = build_curated_target(
         storage_config,
         dataset_date=args.dataset_date,
         run_id=args.run_id,
     )
-    summary = evaluate_quality(curated_target.local_path, args.contract_path, args.run_id)
+    summary = evaluate_quality(curated_target, args.contract_path, args.run_id)
     summary["curated_uri"] = curated_target.uri
-    summary["curated_path"] = str(curated_target.local_path)
+    summary["curated_path"] = str(curated_target.local_path) if curated_target.local_path else None
     summary["contract_path"] = str(Path(args.contract_path).resolve())
     summary["release_manifest_ref"] = args.release_manifest_ref
     summary["terraform_state_ref"] = args.terraform_state_ref
@@ -135,7 +144,7 @@ def run_quality_gate(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    print(json.dumps(run_quality_gate(args), indent=2, sort_keys=True))
+    print(json.dumps(run_quality_gate(args), sort_keys=True))
     return 0
 
 

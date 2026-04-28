@@ -3,7 +3,7 @@
   "dataset_date": "2024-01-31",
   "records_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=9b5fd26a2005c02b/records.jsonl",
   "row_count": 2,
-  "source_curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=cli-replay-run-2/curated-records.jsonl",
+  "source_curated_uri": "s3://local-curated/edgar/curated/dataset_date=2024-01-31/run_id=review-fix-check/curated-records.jsonl",
   "table_uri": "s3tables://local-gold-bucket/edgar/filings",
   "write_mode": "append",
   "write_result_path": ".local-data/s3-tables/local-gold-bucket/edgar/filings/dataset_date=2024-01-31/dataset_version=9b5fd26a2005c02b/write-result.json"

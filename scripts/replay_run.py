@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
     print(
         json.dumps(
             {
-                "previous_manifest_path": str(Path(args.manifest_path).resolve()),
+                "previous_manifest_path": args.manifest_path,
                 "replay_manifest_path": replay_manifest["manifest_path"],
                 "replay_run_id": replay_manifest["run_id"],
                 "reproducible": reproducible,

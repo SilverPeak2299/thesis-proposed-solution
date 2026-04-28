@@ -27,14 +27,13 @@ from thesis_proposed_solution.manifests import (
     record_quality_result,
     record_transform_outputs,
     validate_manifest,
-    write_manifest,
 )
 from thesis_proposed_solution.runtime_config import (
     PipelineRuntimeConfig,
     apply_runtime_overrides,
     load_runtime_config,
 )
-from thesis_proposed_solution.storage import build_manifest_target
+from thesis_proposed_solution.storage import build_manifest_target, write_json_target
 
 
 JOB_REFS = {
@@ -58,6 +57,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--manifest-bucket")
     parser.add_argument("--manifest-prefix")
     parser.add_argument("--local-base-dir")
+    parser.add_argument("--storage-mode")
     parser.add_argument("--gold-table-bucket")
     parser.add_argument("--gold-namespace")
     parser.add_argument("--gold-table")
@@ -86,6 +86,7 @@ def _build_config(args: argparse.Namespace) -> PipelineRuntimeConfig:
         manifest_bucket=args.manifest_bucket,
         manifest_prefix=args.manifest_prefix,
         local_base_dir=args.local_base_dir,
+        storage_mode=args.storage_mode,
         gold_table_bucket=args.gold_table_bucket,
         gold_namespace=args.gold_namespace,
         gold_table=args.gold_table,
@@ -117,7 +118,7 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
         gold_table=config.gold_table.gold_table,
         job_refs=JOB_REFS,
     )
-    write_manifest(manifest, manifest_target.local_path)
+    write_json_target(manifest_target, manifest)
 
     ingest_summary = run_ingest(
         _namespace(
@@ -132,10 +133,11 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
             terraform_state_ref=config.governance.terraform_state_ref,
             change_ref=config.governance.change_ref,
             local_base_dir=str(config.object_storage.local_base_dir),
+            storage_mode=config.object_storage.storage_mode,
         )
     )
     manifest = record_ingest_outputs(manifest, ingest_summary)
-    write_manifest(manifest, manifest_target.local_path)
+    write_json_target(manifest_target, manifest)
 
     transform_summary = run_transform(
         _namespace(
@@ -152,10 +154,11 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
             change_ref=config.governance.change_ref,
             contract_path=contract_path,
             local_base_dir=str(config.object_storage.local_base_dir),
+            storage_mode=config.object_storage.storage_mode,
         )
     )
     manifest = record_transform_outputs(manifest, transform_summary)
-    write_manifest(manifest, manifest_target.local_path)
+    write_json_target(manifest_target, manifest)
 
     quality_summary = run_quality_gate(
         _namespace(
@@ -170,10 +173,11 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
             change_ref=config.governance.change_ref,
             contract_path=contract_path,
             local_base_dir=str(config.object_storage.local_base_dir),
+            storage_mode=config.object_storage.storage_mode,
         )
     )
     manifest = record_quality_result(manifest, quality_summary)
-    write_manifest(manifest, manifest_target.local_path)
+    write_json_target(manifest_target, manifest)
 
     if quality_summary["status"] == "passed":
         promotion_summary = run_promotion(
@@ -192,6 +196,7 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
                 change_ref=config.governance.change_ref,
                 local_base_dir=str(config.object_storage.local_base_dir),
                 local_tables_dir=str(config.gold_table.local_tables_dir),
+                storage_mode=config.object_storage.storage_mode,
             )
         )
         manifest = record_promotion_result(manifest, promotion_summary)
@@ -199,14 +204,14 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
     else:
         manifest = finalize_manifest(manifest, "failed_quality")
 
-    write_manifest(manifest, manifest_target.local_path)
+    write_json_target(manifest_target, manifest)
     errors = validate_manifest(manifest)
     if errors:
         raise ValueError(f"Generated manifest is invalid: {errors}")
 
     result = dict(manifest)
     result["manifest_uri"] = manifest_target.uri
-    result["manifest_path"] = str(manifest_target.local_path)
+    result["manifest_path"] = str(manifest_target.local_path) if manifest_target.local_path else None
     return result
 
 

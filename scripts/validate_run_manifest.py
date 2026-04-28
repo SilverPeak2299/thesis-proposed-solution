@@ -22,9 +22,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    manifest = load_manifest(Path(args.manifest_path))
+    manifest = load_manifest(args.manifest_path)
     errors = validate_manifest(manifest)
-    print(json.dumps({"manifest_path": str(Path(args.manifest_path).resolve()), "errors": errors}, indent=2))
+    print(json.dumps({"manifest_path": args.manifest_path, "errors": errors}, indent=2))
     return 0 if not errors else 1
 
 

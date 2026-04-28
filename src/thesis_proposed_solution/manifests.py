@@ -82,14 +82,30 @@ def create_initial_manifest(
 
 
 def write_manifest(manifest: dict[str, Any], output_path: str | Path) -> None:
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
+    output_ref = str(output_path)
+    if output_ref.startswith("s3://"):
+        from thesis_proposed_solution.storage import build_s3_target_from_uri, write_json_target
+
+        write_json_target(build_s3_target_from_uri(output_ref), manifest)
+        return
+
+    local_path = Path(output_path)
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    with local_path.open("w", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
 
 
 def load_manifest(manifest_path: str | Path) -> dict[str, Any]:
+    manifest_ref = str(manifest_path)
+    if manifest_ref.startswith("s3://"):
+        from thesis_proposed_solution.storage import build_s3_target_from_uri, read_json_target
+
+        payload = read_json_target(build_s3_target_from_uri(manifest_ref))
+        if not isinstance(payload, dict):
+            raise ValueError("Manifest payload must be a JSON object")
+        return payload
+
     with Path(manifest_path).open("r", encoding="utf-8") as handle:
         return json.load(handle)
 

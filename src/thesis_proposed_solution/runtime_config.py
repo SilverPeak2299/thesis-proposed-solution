@@ -17,6 +17,7 @@ class ObjectStorageConfig:
     manifest_bucket: str
     manifest_prefix: str
     local_base_dir: Path
+    storage_mode: str = "local"
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "ObjectStorageConfig":
@@ -28,6 +29,7 @@ class ObjectStorageConfig:
             manifest_bucket=data["manifest_bucket"],
             manifest_prefix=data["manifest_prefix"],
             local_base_dir=Path(data["local_base_dir"]),
+            storage_mode=data.get("storage_mode", "local"),
         )
 
 
@@ -111,6 +113,7 @@ def apply_runtime_overrides(
     manifest_bucket: str | None = None,
     manifest_prefix: str | None = None,
     local_base_dir: str | Path | None = None,
+    storage_mode: str | None = None,
     gold_table_bucket: str | None = None,
     gold_namespace: str | None = None,
     gold_table: str | None = None,
@@ -130,6 +133,7 @@ def apply_runtime_overrides(
         local_base_dir=Path(local_base_dir)
         if local_base_dir is not None
         else config.object_storage.local_base_dir,
+        storage_mode=storage_mode or config.object_storage.storage_mode,
     )
     gold_config = replace(
         config.gold_table,

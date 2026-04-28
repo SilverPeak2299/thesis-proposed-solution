@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from pipelines.edgar_governed_pipeline import (
+    build_final_manifest,
     build_pipeline_spec,
+    build_run_context,
     dependency_map,
     select_quality_branch,
 )
@@ -34,3 +38,62 @@ def test_pipeline_spec_has_expected_task_order_and_dependencies() -> None:
 def test_quality_branch_blocks_promotion_when_quality_fails() -> None:
     assert select_quality_branch({"status": "passed"}) == "promote_to_gold_table"
     assert select_quality_branch({"status": "failed"}) == "finalize_manifest_status"
+
+
+def test_run_context_and_finalizer_write_manifest_for_dag_path(tmp_path: Path) -> None:
+    conf = {
+        "dataset_date": "2024-01-31",
+        "source_uri": "file:///tmp/source.json",
+        "raw_bucket": "raw-bucket",
+        "raw_prefix": "edgar/raw",
+        "curated_bucket": "curated-bucket",
+        "curated_prefix": "edgar/curated",
+        "manifest_bucket": "manifest-bucket",
+        "manifest_prefix": "governed-runs",
+        "release_manifest_ref": "release.json",
+        "terraform_state_ref": "tfstate/1",
+        "change_ref": "issue/1",
+        "gold_table_bucket": "gold-bucket",
+        "gold_namespace": "edgar",
+        "gold_table": "filings",
+        "storage_mode": "local",
+        "local_base_dir": str(tmp_path / "object-storage"),
+    }
+
+    run_context = build_run_context(conf, run_id="dag-run-1")
+    manifest = build_final_manifest(
+        conf,
+        run_context,
+        ingest_summary={
+            "raw_payload_uri": "s3://raw-bucket/edgar/raw/payload.json",
+            "raw_payload_path": str(tmp_path / "payload.json"),
+            "raw_records_uri": "s3://raw-bucket/edgar/raw/normalized-records.jsonl",
+            "raw_records_path": str(tmp_path / "normalized-records.jsonl"),
+            "row_count": 2,
+        },
+        transform_summary={
+            "curated_uri": "s3://curated-bucket/edgar/curated/curated-records.jsonl",
+            "curated_path": str(tmp_path / "curated-records.jsonl"),
+            "contract_path": "/tmp/contract.json",
+            "row_count": 2,
+        },
+        quality_summary={
+            "run_id": "dag-run-1",
+            "checks": [],
+            "failed_checks": [],
+            "status": "passed",
+            "row_count": 2,
+        },
+        promotion_summary={
+            "dataset_version": "deadbeef12345678",
+            "gold_write_result": {
+                "table_uri": "s3tables://gold-bucket/edgar/filings",
+                "row_count": 2,
+            },
+            "row_count": 2,
+        },
+    )
+
+    assert manifest["status"] == "succeeded"
+    assert manifest["manifest_path"] is not None
+    assert Path(manifest["manifest_path"]).exists()

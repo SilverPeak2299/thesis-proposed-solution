@@ -14,7 +14,12 @@ if str(SRC_DIR) not in sys.path:
 
 from thesis_proposed_solution.contracts import coerce_record_to_contract, load_contract
 from thesis_proposed_solution.runtime_config import ObjectStorageConfig
-from thesis_proposed_solution.storage import build_curated_target, build_raw_records_target
+from thesis_proposed_solution.storage import (
+    build_curated_target,
+    build_raw_records_target,
+    read_json_lines_target,
+    write_json_lines_target,
+)
 
 
 DEFAULT_CONTRACT_PATH = str(Path(__file__).resolve().parents[2] / "contracts" / "edgar_curated_contract.json")
@@ -35,20 +40,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--change-ref", required=True)
     parser.add_argument("--contract-path", default=DEFAULT_CONTRACT_PATH)
     parser.add_argument("--local-base-dir", default=".local-data/object-storage")
+    parser.add_argument("--storage-mode", choices=("local", "s3"), default="local")
     return parser
-
-
-def _load_json_lines(input_path: Path) -> list[dict[str, Any]]:
-    with input_path.open("r", encoding="utf-8") as handle:
-        return [json.loads(line) for line in handle if line.strip()]
-
-
-def _write_json_lines(output_path: Path, records: list[dict[str, Any]]) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record, sort_keys=False))
-            handle.write("\n")
 
 
 def _curate_record(record: dict[str, Any], *, dataset_date: str, run_id: str) -> dict[str, Any]:
@@ -73,6 +66,7 @@ def run_transform(args: argparse.Namespace) -> dict[str, Any]:
         manifest_bucket=args.manifest_bucket,
         manifest_prefix=args.manifest_prefix,
         local_base_dir=Path(args.local_base_dir),
+        storage_mode=args.storage_mode,
     )
     raw_records_target = build_raw_records_target(
         storage_config,
@@ -85,7 +79,7 @@ def run_transform(args: argparse.Namespace) -> dict[str, Any]:
         run_id=args.run_id,
     )
     contract = load_contract(args.contract_path)
-    raw_records = _load_json_lines(raw_records_target.local_path)
+    raw_records = read_json_lines_target(raw_records_target)
     curated_records = [
         coerce_record_to_contract(
             _curate_record(record, dataset_date=args.dataset_date, run_id=args.run_id),
@@ -93,14 +87,14 @@ def run_transform(args: argparse.Namespace) -> dict[str, Any]:
         )
         for record in raw_records
     ]
-    _write_json_lines(curated_target.local_path, curated_records)
+    write_json_lines_target(curated_target, curated_records)
     return {
         "run_id": args.run_id,
         "dataset_date": args.dataset_date,
         "raw_records_uri": raw_records_target.uri,
-        "raw_records_path": str(raw_records_target.local_path),
+        "raw_records_path": str(raw_records_target.local_path) if raw_records_target.local_path else None,
         "curated_uri": curated_target.uri,
-        "curated_path": str(curated_target.local_path),
+        "curated_path": str(curated_target.local_path) if curated_target.local_path else None,
         "contract_path": str(Path(args.contract_path).resolve()),
         "row_count": len(curated_records),
         "release_manifest_ref": args.release_manifest_ref,
@@ -111,7 +105,7 @@ def run_transform(args: argparse.Namespace) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    print(json.dumps(run_transform(args), indent=2, sort_keys=True))
+    print(json.dumps(run_transform(args), sort_keys=True))
     return 0
 
 
