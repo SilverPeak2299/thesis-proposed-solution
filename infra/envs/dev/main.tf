@@ -104,6 +104,8 @@ module "mwaa" {
   glue_pass_role_arns       = [module.glue.job_role_arn, module.glue.crawler_role_arn]
   source_cidr_for_webserver = module.network.vpc_cidr
   tags                      = local.common_tags
+
+  depends_on = [module.storage]
 }
 
 module "openmetadata" {

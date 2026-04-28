@@ -46,13 +46,12 @@ data "aws_iam_policy_document" "execution_policy_base" {
   }
 
   statement {
-    sid    = "MwaaQueueAndSecrets"
+    sid    = "MwaaQueueAccess"
     effect = "Allow"
     actions = [
       "sqs:*",
-      "secretsmanager:GetSecretValue",
     ]
-    resources = concat(["*"], var.secret_arns)
+    resources = ["*"]
   }
 
   statement {
@@ -89,9 +88,23 @@ data "aws_iam_policy_document" "execution_policy_passrole" {
   }
 }
 
+data "aws_iam_policy_document" "execution_policy_secrets" {
+  count = length(var.secret_arns) == 0 ? 0 : 1
+
+  statement {
+    sid    = "MwaaSecretReadAccess"
+    effect = "Allow"
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+    resources = var.secret_arns
+  }
+}
+
 data "aws_iam_policy_document" "execution_policy" {
   source_policy_documents = compact([
     data.aws_iam_policy_document.execution_policy_base.json,
+    try(data.aws_iam_policy_document.execution_policy_secrets[0].json, null),
     try(data.aws_iam_policy_document.execution_policy_passrole[0].json, null),
   ])
 }
