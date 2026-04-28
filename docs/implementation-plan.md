@@ -28,8 +28,8 @@ The baseline pipeline is not a parallel build target here. Its role is:
 
 The implementation target for this repo is therefore:
 
-- `MWAA + Glue + S3 raw/curated/gold + Iceberg + Terraform + GitHub Actions +
-  OPA + attestation + OpenLineage + OpenMetadata`
+- `MWAA + Glue + S3 raw/curated + Amazon S3 Tables gold + Terraform + GitHub
+  Actions + OPA + attestation + OpenLineage + OpenMetadata`
 
 That means the build order should optimise for proving the proposed
 architecture, not for recreating the baseline first.
@@ -131,7 +131,8 @@ Exit criteria:
 
 Build only the runtime foundation first:
 
-- S3 buckets or prefixes for raw, curated, gold, and table storage
+- S3 buckets or prefixes for raw, curated, manifests, and MWAA artifacts
+- Amazon S3 Tables bucket and namespace for the managed Iceberg gold layer
 - catalog foundation
 - IAM roles
 - secrets management
@@ -171,7 +172,8 @@ Design rules:
 - every stage must be deterministic enough to replay during evaluation
 - MWAA acts as orchestrator only; Glue Python jobs perform ingestion,
   transformation, and quality validation
-- raw and curated remain simple S3 zones; gold is the governed Iceberg layer
+- raw and curated remain simple S3 zones; gold is the governed Amazon S3
+  Tables layer
 
 Exit criteria:
 

@@ -29,8 +29,8 @@ the thesis prototype, not a claim of production-complete hardening.
 - Cloud target: AWS-first
 - Orchestration: Amazon MWAA
 - Compute: AWS Glue Python jobs
-- Data zones: S3 raw, S3 curated, S3 gold
-- Governed analytical layer: Iceberg at gold only
+- Data zones: S3 raw, S3 curated, Amazon S3 Tables gold
+- Governed analytical layer: managed Iceberg via Amazon S3 Tables at gold only
 - Infrastructure as code: Terraform
 - CI/CD: GitHub Actions
 - Change management: GitHub Issues + Pull Requests
@@ -59,7 +59,7 @@ the thesis prototype, not a claim of production-complete hardening.
 | Glue Python jobs | Ingestion, transformation, and data quality execution |
 | S3 raw zone | Landing zone for extracted source data |
 | S3 curated zone | Intermediate transformed zone before governed promotion |
-| S3 gold / Iceberg | Final governed analytical dataset layer with versionable table state |
+| Amazon S3 Tables gold / managed Iceberg | Final governed analytical dataset layer with versionable table state |
 | Glue Crawler | Metadata scan of governed outputs where needed |
 | Glue Data Catalog | AWS catalog context for tables and schema metadata |
 | OpenLineage | Lineage events emitted from orchestrated runtime jobs |
@@ -106,7 +106,7 @@ The runtime path is:
 6. Promotion to gold is allowed only if:
    - the quality/contract checks pass
    - the runtime is using an approved attested release
-7. The promoted output is written to the S3 gold Iceberg layer.
+7. The promoted output is written to the Amazon S3 Tables gold layer.
 
 For every governed run, the system must capture at minimum:
 
@@ -153,8 +153,9 @@ The required metric set is defined in
   not required for the prototype.
 - OpenMetadata is a real deployed service in the target architecture, not a
   conceptual placeholder.
-- Gold is the only Iceberg-managed layer. Raw and curated remain simpler S3
-  zones to reduce platform complexity.
+- Gold is the only Iceberg-managed layer and is implemented with Amazon S3
+  Tables. Raw and curated remain simpler S3 zones to reduce platform
+  complexity.
 - Glue uses Python jobs in the prototype for cost reasons. This is a runtime
   implementation choice, not a thesis claim that Python jobs are the only valid
   production design.
