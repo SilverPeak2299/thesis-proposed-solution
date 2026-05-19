@@ -151,6 +151,8 @@ venv.bak/
 .terraform/
 *.tfstate
 *.tfstate.*
+*.tfvars
+!*.tfvars.example
 
 # Spyder project settings
 .spyderproject
