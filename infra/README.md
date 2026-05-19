@@ -3,6 +3,10 @@
 This directory contains the Terraform foundation for the AWS-first target
 architecture.
 
+The dev environment can now run with `enable_mwaa = false` so MWAA can be
+torn down while local Docker-based Airflow is used for orchestration
+development.
+
 ## Scope of this slice
 
 This first cut provisions the minimum platform needed for the parallel ETL
@@ -14,7 +18,7 @@ Included:
 - dedicated VPC with public and private subnets
 - standard S3 buckets for `raw`, `curated`, `manifests`, and MWAA artifacts
 - Amazon S3 Tables bucket and namespace for the managed Iceberg gold layer
-- MWAA environment foundation
+- optional MWAA environment foundation
 - Glue execution and crawler roles plus baseline catalog databases
 - Secrets Manager placeholders
 - OpenMetadata EC2 host foundation
@@ -58,6 +62,10 @@ terraform init
 terraform plan
 ```
 
+Set `enable_mwaa = false` to keep MWAA out of the dev stack while working
+against local Docker Airflow. Set `enable_mwaa = true` when preparing to
+redeploy DAGs to AWS.
+
 ## ETL-facing outputs
 
 The ETL team should consume Terraform outputs and variables rather than
@@ -76,6 +84,8 @@ hardcoding AWS names:
 The gold layer is not a plain S3 prefix. It is an Amazon S3 Tables table
 bucket plus namespace, so ETL promotion should target table identifiers rather
 than a `gold_root` path.
+
+When `enable_mwaa = false`, MWAA-specific outputs resolve to `null`.
 
 ## Backend posture
 

@@ -9,13 +9,14 @@ Current key docs:
 - [Implementation plan](./docs/implementation-plan.md)
 - [Implementation contract](./docs/implementation-contract.md)
 - [R1-R5 control matrix](./docs/control-matrix.md)
+- [Local Airflow development](./docs/local-airflow-development.md)
 - [Repository conventions](./docs/repository-conventions.md)
 - [Contributor runbook](./docs/contributor-runbook.md)
 
 Stage 1 scaffolding now reserves the main implementation areas:
 
 - `infra/` for Terraform
-- `pipelines/` for MWAA assets
+- `pipelines/` for Airflow assets that can run locally in Docker and later on MWAA
 - `jobs/` for Glue Python jobs
 - `policies/` for OPA/Rego
 - `contracts/` for data contracts

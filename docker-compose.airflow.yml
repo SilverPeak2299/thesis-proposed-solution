@@ -1,0 +1,16 @@
+services:
+  airflow:
+    image: apache/airflow:${AIRFLOW_IMAGE_TAG:-2.9.3-python3.11}
+    container_name: thesis-local-airflow
+    user: "${AIRFLOW_UID:-50000}:0"
+    working_dir: /opt/airflow
+    environment:
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/pipelines
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      PYTHONPATH: /opt/airflow:/opt/airflow/src
+    volumes:
+      - .:/opt/airflow
+    ports:
+      - "8080:8080"
+    command: standalone

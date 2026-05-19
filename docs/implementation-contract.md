@@ -27,7 +27,9 @@ the thesis prototype, not a claim of production-complete hardening.
 ## Fixed Architecture Decisions
 
 - Cloud target: AWS-first
-- Orchestration: Amazon MWAA
+- Orchestration runtime: Apache Airflow
+- Development orchestration surface: local Docker-based Airflow
+- AWS orchestration deployment target: Amazon MWAA
 - Compute: AWS Glue Python jobs
 - Data zones: S3 raw, S3 curated, Amazon S3 Tables gold
 - Governed analytical layer: managed Iceberg via Amazon S3 Tables at gold only
@@ -55,7 +57,8 @@ the thesis prototype, not a claim of production-complete hardening.
 | Approved artifact / release | Logical release manifest referencing immutable deployable assets |
 | GitHub native attestation | Provenance attached to the approved release manifest and artifact set |
 | Terraform | IaC for AWS resources, with the applied Terraform state version captured as evidence |
-| MWAA | Orchestrator only; schedules and triggers Glue jobs and control steps |
+| Airflow DAG | Single orchestration definition exercised locally in Docker and deployed to MWAA for AWS runtime |
+| MWAA | AWS hosting target for the Airflow DAG bundle when cloud orchestration is enabled |
 | Glue Python jobs | Ingestion, transformation, and data quality execution |
 | S3 raw zone | Landing zone for extracted source data |
 | S3 curated zone | Intermediate transformed zone before governed promotion |
@@ -75,28 +78,33 @@ The deployable unit is a single logical release manifest.
 
 Each approved release manifest must reference:
 
-- an immutable MWAA DAG bundle
+- an immutable Airflow DAG bundle
 - an immutable Glue job script or package version
 - the Terraform state version for the target environment
 - the GitHub CI run that produced the release
 - the GitHub native attestation/provenance record
 
 This is a logical release unit rather than a single physical file. The reason
-is that MWAA and Glue are deployed as separate runtime assets, but the thesis
-needs one auditable control-plane object that links them together.
+is that Airflow and Glue are deployed as separate runtime assets, but the
+thesis needs one auditable control-plane object that links them together.
 
 Deployment path:
 
 1. GitHub Actions runs tests, policy checks, and packaging.
 2. GitHub Actions creates the logical release manifest.
 3. GitHub Actions records or links the GitHub native attestation.
-4. GitHub Actions deploys the MWAA DAG bundle and the referenced Glue job
+4. GitHub Actions deploys the Airflow DAG bundle to the active orchestration
+   target and the referenced Glue job
    package/version.
 5. Runtime executions record the release manifest reference in run evidence.
 
+Normal development can use local Docker-based Airflow as the active
+orchestration target. Governed AWS runtime evaluation later deploys the same
+DAG bundle to MWAA.
+
 ## Runtime And Evidence Model
 
-The runtime path is:
+The governed AWS runtime path is:
 
 1. MWAA triggers a Glue ingestion job.
 2. The ingestion job writes source data to S3 raw.
@@ -113,7 +121,8 @@ For every governed run, the system must capture at minimum:
 - run ID
 - source extraction timestamp or source version
 - release manifest reference
-- MWAA bundle reference
+- Airflow bundle reference
+- orchestration target reference
 - Glue job package/version reference
 - Terraform state version
 - issue/change reference
@@ -125,6 +134,10 @@ For every governed run, the system must capture at minimum:
 The authoritative run record is stored as a versioned S3 JSON manifest.
 OpenMetadata is the query hub, but S3 manifests are the authoritative stored run
 evidence.
+
+Local Docker Airflow runs are valid development and rehearsal runs, but they do
+not count as governed runs for thesis metrics until the same release path is
+redeployed to the AWS target.
 
 Primary audit chain:
 

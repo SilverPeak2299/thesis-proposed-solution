@@ -9,3 +9,6 @@ Planned contents:
 - replay and evidence inspection utilities
 
 Local support is intentionally light. AWS remains the primary runtime target.
+
+For orchestration development, prefer the Docker-based Airflow path documented
+in [docs/local-airflow-development.md](/Users/danny/Documents/UNI/thesis/thesis-proposed-solution/docs/local-airflow-development.md).

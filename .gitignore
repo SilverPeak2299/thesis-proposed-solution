@@ -146,6 +146,10 @@ venv.bak/
 
 # Local generated pipeline data
 .local-data/
+.local-airflow/
+logs/
+airflow.db
+standalone_admin_password.txt
 
 # Terraform working directories and state
 .terraform/

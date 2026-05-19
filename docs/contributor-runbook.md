@@ -18,6 +18,10 @@ When working in this repository, prefer changes that improve:
 
 Runtime complexity should not be added unless it supports those goals.
 
+For orchestration work, use local Docker-based Airflow first and only re-enable
+MWAA when validating the AWS deployment path or collecting governed runtime
+evidence.
+
 ## Opening A Pull Request
 
 Before opening a PR, capture:
@@ -35,5 +39,6 @@ chain, update:
 - `docs/implementation-contract.md`
 - `docs/control-matrix.md`
 - `docs/implementation-plan.md`
+- `docs/local-airflow-development.md`
 
 as needed so Phase 0 and Stage 1 remain aligned.

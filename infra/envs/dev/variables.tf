@@ -100,6 +100,12 @@ variable "glue_catalog_prefix" {
   default     = "thesis"
 }
 
+variable "enable_mwaa" {
+  description = "Whether to provision the MWAA environment in dev. Disable this for local Docker-based Airflow development."
+  type        = bool
+  default     = false
+}
+
 variable "mwaa_webserver_access_mode" {
   description = "Webserver access mode for the MWAA environment."
   type        = string

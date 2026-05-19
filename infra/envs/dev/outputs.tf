@@ -19,13 +19,13 @@ output "mwaa_bucket_name" {
 }
 
 output "mwaa_environment_name" {
-  description = "Provisioned MWAA environment name."
-  value       = module.mwaa.environment_name
+  description = "Provisioned MWAA environment name when enable_mwaa is true."
+  value       = var.enable_mwaa ? module.mwaa[0].environment_name : null
 }
 
 output "mwaa_execution_role_arn" {
-  description = "Execution role used by the MWAA environment."
-  value       = module.mwaa.execution_role_arn
+  description = "Execution role used by the MWAA environment when enable_mwaa is true."
+  value       = var.enable_mwaa ? module.mwaa[0].execution_role_arn : null
 }
 
 output "glue_job_role_arn" {

@@ -85,6 +85,7 @@ module "glue" {
 }
 
 module "mwaa" {
+  count  = var.enable_mwaa ? 1 : 0
   source = "../../modules/mwaa"
 
   name_prefix               = local.name_prefix

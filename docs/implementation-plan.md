@@ -28,8 +28,12 @@ The baseline pipeline is not a parallel build target here. Its role is:
 
 The implementation target for this repo is therefore:
 
-- `MWAA + Glue + S3 raw/curated + Amazon S3 Tables gold + Terraform + GitHub
-  Actions + OPA + attestation + OpenLineage + OpenMetadata`
+- `Airflow + Glue + S3 raw/curated + Amazon S3 Tables gold + Terraform +
+  GitHub Actions + OPA + attestation + OpenLineage + OpenMetadata`
+
+During development, Airflow should run locally in Docker to control cost.
+Later phases still redeploy the same DAG assets to MWAA for the governed AWS
+runtime target.
 
 That means the build order should optimise for proving the proposed
 architecture, not for recreating the baseline first.
@@ -140,6 +144,7 @@ Build only the runtime foundation first:
 
 Keep this phase intentionally thin:
 
+- allow MWAA to remain disabled in dev while the rest of the platform stands up
 - no advanced lineage yet
 - no full audit UI yet
 - only enough infra to execute one governed pipeline
@@ -170,10 +175,16 @@ Design rules:
 - every run must emit a run ID
 - every output path/table version must be attributable to that run ID
 - every stage must be deterministic enough to replay during evaluation
-- MWAA acts as orchestrator only; Glue Python jobs perform ingestion,
+- Airflow acts as orchestrator only; Glue Python jobs perform ingestion,
   transformation, and quality validation
 - raw and curated remain simple S3 zones; gold is the governed Amazon S3
   Tables layer
+
+Development sequence for this phase:
+
+- prove the DAG path locally in Docker Airflow first
+- keep the DAG bundle compatible with later MWAA deployment
+- defer always-on MWAA cost until the AWS runtime path needs validation
 
 Exit criteria:
 
@@ -217,8 +228,8 @@ Minimum proof required:
 
 - runtime execution consumes a specific approved artifact version
 - you can show `commit -> CI run -> artifact -> attestation -> deployment`
-- deployment updates the MWAA workflow bundle and the referenced Glue job
-  package/version
+- deployment updates the Airflow workflow bundle on the active target and the
+  referenced Glue job package/version
 
 Exit criteria:
 
@@ -336,8 +347,9 @@ Exit criteria:
 If you want the shortest path to visible progress, do the work in this order:
 
 1. Freeze implementation choices and repository structure.
-2. Provision base AWS resources with Terraform.
-3. Get one ingestion job and one transform job running end to end.
+2. Prove the DAG and one ETL slice locally in Docker Airflow.
+3. Provision base AWS resources with Terraform, leaving MWAA disabled if cost
+   control still matters.
 4. Add GitHub issue/PR discipline, CODEOWNERS, and branch rules.
 5. Add CI checks, security scans, and OPA policy gates.
 6. Package and attest deployment artifacts.
@@ -371,9 +383,10 @@ true:
 
 ## Recommended Milestone Structure
 
-### Milestone 1: Running Baseline In The New Repo
+### Milestone 1: Local-first Pipeline Slice
 
 - repo skeleton
+- local Docker Airflow path
 - Terraform foundation
 - one ETL path working
 
@@ -416,7 +429,7 @@ Start by writing an implementation contract that answers these four questions:
 
 1. Which exact AWS services and open-source tools map to each diagram box?
 2. Where will run metadata live before or alongside OpenMetadata?
-3. What exact artifact will be attested and deployed into MWAA/Glue?
+3. What exact artifact will be attested and deployed into Airflow/Glue?
 4. What measurable baseline-vs-proposed indicators will you capture for R1-R5?
 
 Once those are fixed, build the repo skeleton and the Terraform foundation
