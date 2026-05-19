@@ -1,4 +1,5 @@
 data "aws_availability_zones" "available" {
+  count = var.availability_zones == null ? 1 : 0
   state = "available"
 }
 
@@ -7,6 +8,8 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
 locals {
+  selected_availability_zones = var.availability_zones != null ? var.availability_zones : slice(data.aws_availability_zones.available[0].names, 0, 2)
+
   common_tags = merge(
     var.tags,
     {
@@ -27,7 +30,7 @@ module "network" {
   vpc_cidr             = var.vpc_cidr
   public_subnet_cidrs  = var.public_subnet_cidrs
   private_subnet_cidrs = var.private_subnet_cidrs
-  availability_zones   = slice(data.aws_availability_zones.available.names, 0, 2)
+  availability_zones   = local.selected_availability_zones
   tags                 = local.common_tags
 }
 
@@ -116,6 +119,7 @@ module "openmetadata" {
   public_subnet_id    = module.network.public_subnet_ids[0]
   admin_ingress_cidrs = var.openmetadata_admin_ingress_cidrs
   instance_type       = var.openmetadata_instance_type
+  ami_id              = var.openmetadata_ami_id
   ssh_key_name        = var.openmetadata_ssh_key_name
   allow_ssh           = var.openmetadata_allow_ssh
   secret_arns         = values(module.secrets.secret_arns)

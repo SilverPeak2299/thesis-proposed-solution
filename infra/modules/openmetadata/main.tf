@@ -1,5 +1,6 @@
 data "aws_ssm_parameter" "al2023_ami" {
-  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
+  count = var.ami_id == null ? 1 : 0
+  name  = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
 
 data "aws_iam_policy_document" "assume_role" {
@@ -120,7 +121,7 @@ locals {
 }
 
 resource "aws_instance" "this" {
-  ami                         = data.aws_ssm_parameter.al2023_ami.value
+  ami                         = var.ami_id != null ? var.ami_id : data.aws_ssm_parameter.al2023_ami[0].value
   instance_type               = var.instance_type
   subnet_id                   = var.public_subnet_id
   vpc_security_group_ids      = [aws_security_group.this.id]

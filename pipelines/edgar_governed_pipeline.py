@@ -31,6 +31,7 @@ PIPELINE_ID = "edgar_governed_pipeline"
 DEFAULT_STORAGE_MODE = "s3"
 DEFAULT_LOCAL_BASE_DIR = "/tmp/etl-pipeline/object-storage"
 DEFAULT_LOCAL_TABLES_DIR = "/tmp/etl-pipeline/s3-tables"
+DEPLOYED_PROJECT_ROOT = str(Path(__file__).resolve().parents[1])
 
 JOB_REFS = {
     "ingest": "jobs/ingest/edgar_ingest.py",
@@ -326,7 +327,12 @@ else:
                 elif spec.task_type == "branch":
                     task = BranchPythonOperator(task_id=spec.task_id, python_callable=_branch_from_airflow_context)
                 else:
-                    task = BashOperator(task_id=spec.task_id, bash_command=spec.command, do_xcom_push=True)
+                    task = BashOperator(
+                        task_id=spec.task_id,
+                        bash_command=spec.command,
+                        cwd=DEPLOYED_PROJECT_ROOT,
+                        do_xcom_push=True,
+                    )
                 tasks[spec.task_id] = task
 
             tasks["finalize_manifest_status"].trigger_rule = TriggerRule.NONE_FAILED_MIN_ONE_SUCCESS

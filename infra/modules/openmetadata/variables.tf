@@ -24,6 +24,12 @@ variable "instance_type" {
   type        = string
 }
 
+variable "ami_id" {
+  description = "Optional explicit AMI ID for the OpenMetadata host."
+  type        = string
+  default     = null
+}
+
 variable "ssh_key_name" {
   description = "Optional EC2 key pair for SSH access."
   type        = string

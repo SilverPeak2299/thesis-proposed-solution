@@ -20,10 +20,11 @@ data "aws_iam_policy_document" "execution_policy_base" {
     sid    = "MwaaArtifactBucketAccess"
     effect = "Allow"
     actions = [
-      "s3:GetObject",
+      "s3:GetBucket*",
+      "s3:GetObject*",
+      "s3:List*",
       "s3:PutObject",
       "s3:DeleteObject",
-      "s3:ListBucket",
     ]
     resources = concat(
       [var.mwaa_bucket_arn, "${var.mwaa_bucket_arn}/*"],
@@ -64,6 +65,15 @@ data "aws_iam_policy_document" "execution_policy_base" {
       "elasticloadbalancing:Describe*",
       "kms:Decrypt",
       "kms:GenerateDataKey*",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "MwaaPublicAccessBlockRead"
+    effect = "Allow"
+    actions = [
+      "s3:GetAccountPublicAccessBlock",
     ]
     resources = ["*"]
   }

@@ -3,6 +3,12 @@ variable "aws_region" {
   type        = string
 }
 
+variable "aws_profile" {
+  description = "AWS shared config/credentials profile used by the dev environment."
+  type        = string
+  default     = null
+}
+
 variable "project_name" {
   description = "Short project identifier used in names and tags."
   type        = string
@@ -40,6 +46,17 @@ variable "private_subnet_cidrs" {
   validation {
     condition     = length(var.private_subnet_cidrs) == 2
     error_message = "Exactly two private subnet CIDRs are required."
+  }
+}
+
+variable "availability_zones" {
+  description = "Optional explicit availability zones for the two public and two private subnets."
+  type        = list(string)
+  default     = null
+
+  validation {
+    condition     = var.availability_zones == null || length(var.availability_zones) == 2
+    error_message = "Set exactly two availability zones or leave the value null."
   }
 }
 
@@ -155,6 +172,12 @@ variable "openmetadata_instance_type" {
   description = "EC2 instance type for the OpenMetadata host."
   type        = string
   default     = "t3.small"
+}
+
+variable "openmetadata_ami_id" {
+  description = "Optional explicit EC2 AMI ID for the OpenMetadata host. Leave null to resolve from SSM."
+  type        = string
+  default     = null
 }
 
 variable "openmetadata_ssh_key_name" {
