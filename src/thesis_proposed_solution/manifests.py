@@ -26,6 +26,11 @@ REQUIRED_MANIFEST_FIELDS = [
     "gold_write_result",
     "quality_result",
     "row_counts",
+    "reference_checks",
+    "source_control",
+    "code_bundle",
+    "attestation",
+    "metadata_refs",
     "started_at",
     "completed_at",
     "status",
@@ -55,6 +60,9 @@ def create_initial_manifest(
     gold_namespace: str,
     gold_table: str,
     job_refs: dict[str, str],
+    source_control: dict[str, Any] | None = None,
+    code_bundle: dict[str, Any] | None = None,
+    attestation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     return {
         "run_id": run_id,
@@ -74,6 +82,11 @@ def create_initial_manifest(
         "gold_write_result": None,
         "quality_result": None,
         "row_counts": {},
+        "reference_checks": {},
+        "source_control": deepcopy(source_control or {"git_commit_sha": None, "git_branch": None, "repository_url": None}),
+        "code_bundle": deepcopy(code_bundle or {"artifacts": {}}),
+        "attestation": deepcopy(attestation or {"available": False}),
+        "metadata_refs": {},
         "started_at": utc_now_iso(),
         "completed_at": None,
         "status": "running",
@@ -159,6 +172,18 @@ def finalize_manifest(manifest: dict[str, Any], status: str) -> dict[str, Any]:
     return updated
 
 
+def record_reference_checks(manifest: dict[str, Any], reference_checks: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["reference_checks"] = deepcopy(reference_checks)
+    return updated
+
+
+def record_metadata_refs(manifest: dict[str, Any], metadata_refs: dict[str, Any]) -> dict[str, Any]:
+    updated = deepcopy(manifest)
+    updated["metadata_refs"] = deepcopy(metadata_refs)
+    return updated
+
+
 def compute_dataset_version(
     *,
     gold_table_bucket: str,
@@ -203,13 +228,42 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
     if quality_result is None:
         errors.append("quality_result is required")
 
+    reference_checks = manifest.get("reference_checks")
+    if not isinstance(reference_checks, dict):
+        errors.append("reference_checks must be a mapping")
+    else:
+        for field_name in ["release_manifest_ref", "terraform_state_ref", "change_ref"]:
+            check = reference_checks.get(field_name)
+            if check is None:
+                errors.append(f"missing reference check: {field_name}")
+            elif not check.get("exists"):
+                errors.append(f"unresolved governance reference: {field_name}")
+
+    for field_name in ["source_control", "code_bundle", "attestation"]:
+        if not isinstance(manifest.get(field_name), dict):
+            errors.append(f"{field_name} must be a mapping")
+
     if manifest.get("status") == "succeeded":
         if not manifest.get("dataset_version"):
             errors.append("dataset_version is required for successful runs")
         if not manifest.get("gold_write_result"):
             errors.append("gold_write_result is required for successful runs")
+        metadata_refs = manifest.get("metadata_refs") or {}
+        for field_name in [
+            "openmetadata_run_path",
+            "openmetadata_dataset_path",
+            "audit_chain_path",
+            "openlineage_event_path",
+        ]:
+            if not metadata_refs.get(field_name):
+                errors.append(f"metadata ref is required for successful runs: {field_name}")
 
     if manifest.get("status") == "failed_quality" and manifest.get("dataset_version") is not None:
         errors.append("dataset_version must be null for failed quality runs")
+    if manifest.get("status") == "failed_quality":
+        metadata_refs = manifest.get("metadata_refs") or {}
+        for field_name in ["openmetadata_run_path", "openlineage_event_path"]:
+            if not metadata_refs.get(field_name):
+                errors.append(f"metadata ref is required for failed quality runs: {field_name}")
 
     return errors

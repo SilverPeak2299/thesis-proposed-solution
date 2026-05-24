@@ -17,12 +17,21 @@ from thesis_proposed_solution.manifests import (
     create_initial_manifest,
     finalize_manifest,
     load_manifest,
+    record_metadata_refs,
+    record_reference_checks,
     record_ingest_outputs,
     record_promotion_result,
     record_quality_result,
     record_transform_outputs,
     utc_now_iso,
+    validate_manifest,
     write_manifest,
+)
+from thesis_proposed_solution.metadata import (
+    capture_run_provenance,
+    missing_reference_errors,
+    publish_run_metadata,
+    validate_governance_references,
 )
 from thesis_proposed_solution.runtime_config import ObjectStorageConfig
 from thesis_proposed_solution.storage import build_manifest_target
@@ -85,6 +94,10 @@ def _build_manifest_target(conf: Mapping[str, Any], run_id: str):
 
 
 def _create_base_manifest(conf: Mapping[str, Any], run_id: str) -> dict[str, Any]:
+    provenance = capture_run_provenance(
+        job_refs=JOB_REFS,
+        release_manifest_ref=conf["release_manifest_ref"],
+    )
     return create_initial_manifest(
         run_id=run_id,
         pipeline_id=PIPELINE_ID,
@@ -97,6 +110,9 @@ def _create_base_manifest(conf: Mapping[str, Any], run_id: str) -> dict[str, Any
         gold_namespace=conf["gold_namespace"],
         gold_table=conf["gold_table"],
         job_refs=JOB_REFS,
+        source_control=provenance["source_control"],
+        code_bundle=provenance["code_bundle"],
+        attestation=provenance["attestation"],
     )
 
 
@@ -112,8 +128,17 @@ def _parse_task_summary(payload: Any) -> dict[str, Any] | None:
 
 def build_run_context(conf: Mapping[str, Any], run_id: str | None = None) -> dict[str, Any]:
     effective_run_id = run_id or conf.get("run_id") or f"airflow-{utc_now_iso().replace(':', '').replace('+00:00', 'z')}"
+    reference_checks = validate_governance_references(
+        release_manifest_ref=conf["release_manifest_ref"],
+        terraform_state_ref=conf["terraform_state_ref"],
+        change_ref=conf["change_ref"],
+    )
+    reference_errors = missing_reference_errors(reference_checks)
+    if reference_errors:
+        raise ValueError(f"Governance references are invalid: {reference_errors}")
     manifest_target = _build_manifest_target(conf, effective_run_id)
     manifest = _create_base_manifest(conf, effective_run_id)
+    manifest = record_reference_checks(manifest, reference_checks)
     write_manifest(manifest, _manifest_reference(manifest_target))
     return {"run_id": effective_run_id, **_manifest_location_fields(manifest_target)}
 
@@ -148,6 +173,20 @@ def build_final_manifest(
     if quality_summary is not None and quality_summary.get("status") == "passed" and promotion_summary is not None:
         final_status = "succeeded"
     manifest = finalize_manifest(manifest, final_status)
+    manifest = record_metadata_refs(
+        manifest,
+        publish_run_metadata(
+            manifest,
+            manifest_ref=manifest_ref,
+            local_base_dir=Path(conf.get("local_base_dir", DEFAULT_LOCAL_BASE_DIR)),
+            openmetadata_api_endpoint=conf.get("openmetadata_api_endpoint"),
+            openmetadata_username=conf.get("openmetadata_username"),
+            openmetadata_password=conf.get("openmetadata_password"),
+        ),
+    )
+    errors = validate_manifest(manifest)
+    if errors:
+        raise ValueError(f"Generated manifest is invalid: {errors}")
     write_manifest(manifest, manifest_ref)
 
     result = dict(manifest)

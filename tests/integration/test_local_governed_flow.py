@@ -13,6 +13,12 @@ from thesis_proposed_solution.runtime_config import (
 
 def test_local_governed_flow_produces_manifest_and_gold_table_coordinates(tmp_path: Path) -> None:
     fixture_path = Path(__file__).resolve().parents[1] / "fixtures" / "edgar_sample" / "submissions.json"
+    release_manifest = tmp_path / "release-manifest.json"
+    terraform_state = tmp_path / "terraform-state.json"
+    change_record = tmp_path / "change-record.json"
+    release_manifest.write_text("{}", encoding="utf-8")
+    terraform_state.write_text("{}", encoding="utf-8")
+    change_record.write_text("{}", encoding="utf-8")
     config = PipelineRuntimeConfig(
         pipeline_id="edgar_governed_pipeline",
         dataset_date="2024-01-31",
@@ -33,9 +39,9 @@ def test_local_governed_flow_produces_manifest_and_gold_table_coordinates(tmp_pa
             local_tables_dir=tmp_path / "s3-tables",
         ),
         governance=GovernanceRefs(
-            release_manifest_ref="release-manifests/dev-edgar-v1.json",
-            terraform_state_ref="terraform-state/dev/serial-0001",
-            change_ref="issue/EDGAR-1",
+            release_manifest_ref=str(release_manifest),
+            terraform_state_ref=str(terraform_state),
+            change_ref=str(change_record),
         ),
     )
 
@@ -50,10 +56,20 @@ def test_local_governed_flow_produces_manifest_and_gold_table_coordinates(tmp_pa
     assert manifest["gold_table"] == "filings"
     assert manifest["dataset_version"]
     assert manifest["status"] == "succeeded"
+    assert Path(manifest["metadata_refs"]["openmetadata_run_path"]).exists()
+    assert Path(manifest["metadata_refs"]["openmetadata_dataset_path"]).exists()
+    assert Path(manifest["metadata_refs"]["audit_chain_path"]).exists()
+    assert Path(manifest["metadata_refs"]["openlineage_event_path"]).exists()
 
 
 def test_replayed_runs_keep_the_same_dataset_version_for_identical_inputs(tmp_path: Path) -> None:
     fixture_path = Path(__file__).resolve().parents[1] / "fixtures" / "edgar_sample" / "submissions.json"
+    release_manifest = tmp_path / "release-manifest.json"
+    terraform_state = tmp_path / "terraform-state.json"
+    change_record = tmp_path / "change-record.json"
+    release_manifest.write_text("{}", encoding="utf-8")
+    terraform_state.write_text("{}", encoding="utf-8")
+    change_record.write_text("{}", encoding="utf-8")
     config = PipelineRuntimeConfig(
         pipeline_id="edgar_governed_pipeline",
         dataset_date="2024-01-31",
@@ -74,9 +90,9 @@ def test_replayed_runs_keep_the_same_dataset_version_for_identical_inputs(tmp_pa
             local_tables_dir=tmp_path / "s3-tables",
         ),
         governance=GovernanceRefs(
-            release_manifest_ref="release-manifests/dev-edgar-v1.json",
-            terraform_state_ref="terraform-state/dev/serial-0001",
-            change_ref="issue/EDGAR-1",
+            release_manifest_ref=str(release_manifest),
+            terraform_state_ref=str(terraform_state),
+            change_ref=str(change_record),
         ),
     )
 

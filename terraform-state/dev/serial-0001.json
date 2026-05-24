@@ -1,0 +1,6 @@
+{
+  "state_id": "dev-serial-0001",
+  "runtime": "aws-dev",
+  "environment": "dev",
+  "mwaa_enabled": false
+}

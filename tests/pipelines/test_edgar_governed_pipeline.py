@@ -41,6 +41,13 @@ def test_quality_branch_blocks_promotion_when_quality_fails() -> None:
 
 
 def test_run_context_and_finalizer_write_manifest_for_dag_path(tmp_path: Path) -> None:
+    release_manifest = tmp_path / "release.json"
+    terraform_state = tmp_path / "terraform-state.json"
+    change_record = tmp_path / "change.json"
+    release_manifest.write_text("{}", encoding="utf-8")
+    terraform_state.write_text("{}", encoding="utf-8")
+    change_record.write_text("{}", encoding="utf-8")
+
     conf = {
         "dataset_date": "2024-01-31",
         "source_uri": "file:///tmp/source.json",
@@ -50,9 +57,9 @@ def test_run_context_and_finalizer_write_manifest_for_dag_path(tmp_path: Path) -
         "curated_prefix": "edgar/curated",
         "manifest_bucket": "manifest-bucket",
         "manifest_prefix": "governed-runs",
-        "release_manifest_ref": "release.json",
-        "terraform_state_ref": "tfstate/1",
-        "change_ref": "issue/1",
+        "release_manifest_ref": str(release_manifest),
+        "terraform_state_ref": str(terraform_state),
+        "change_ref": str(change_record),
         "gold_table_bucket": "gold-bucket",
         "gold_namespace": "edgar",
         "gold_table": "filings",
@@ -97,3 +104,5 @@ def test_run_context_and_finalizer_write_manifest_for_dag_path(tmp_path: Path) -
     assert manifest["status"] == "succeeded"
     assert manifest["manifest_path"] is not None
     assert Path(manifest["manifest_path"]).exists()
+    assert manifest["metadata_refs"]["openlineage_event_path"] is not None
+    assert Path(manifest["metadata_refs"]["openlineage_event_path"]).exists()

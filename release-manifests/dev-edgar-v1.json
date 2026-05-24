@@ -1,0 +1,12 @@
+{
+  "release_id": "dev-edgar-v1",
+  "pipeline_id": "edgar_governed_pipeline",
+  "dag_bundle_ref": "pipelines/edgar_governed_pipeline.py",
+  "jobs": {
+    "ingest": "jobs/ingest/edgar_ingest.py",
+    "transform": "jobs/transform/edgar_transform.py",
+    "quality": "jobs/quality/curated_quality_gate.py",
+    "promote": "jobs/promote/promote_to_s3_table.py"
+  },
+  "notes": "Sample governed release manifest for local replay and integration tests."
+}

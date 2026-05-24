@@ -149,6 +149,9 @@ venv.bak/
 .local-airflow/
 logs/
 airflow.db
+airflow.cfg
+airflow-webserver.pid
+webserver_config.py
 standalone_admin_password.txt
 
 # Terraform working directories and state

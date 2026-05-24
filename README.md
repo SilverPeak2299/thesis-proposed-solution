@@ -17,8 +17,12 @@ Stage 1 scaffolding now reserves the main implementation areas:
 
 - `infra/` for Terraform
 - `pipelines/` for Airflow assets that can run locally in Docker and later on MWAA
+- `docker-compose.airflow.yml` for the local Airflow plus OpenMetadata development stack
 - `jobs/` for Glue Python jobs
 - `policies/` for OPA/Rego
 - `contracts/` for data contracts
+- `release-manifests/` for sample logical release manifests used by local validation
+- `terraform-state/` for sample Terraform state reference records used by local validation
+- `changes/` for sample change records used by local validation
 - `src/` for shared Python code
 - `tests/` for future test coverage

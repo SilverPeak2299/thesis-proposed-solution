@@ -3,12 +3,15 @@ from __future__ import annotations
 from thesis_proposed_solution.manifests import (
     create_initial_manifest,
     finalize_manifest,
+    record_metadata_refs,
+    record_reference_checks,
     record_ingest_outputs,
     record_promotion_result,
     record_quality_result,
     record_transform_outputs,
     validate_manifest,
 )
+from thesis_proposed_solution.metadata import validate_governance_references
 
 
 def test_manifest_generation_captures_required_governance_fields() -> None:
@@ -17,13 +20,28 @@ def test_manifest_generation_captures_required_governance_fields() -> None:
         pipeline_id="edgar_governed_pipeline",
         dataset_date="2024-01-31",
         source_ref="file:///tmp/source.json",
-        release_manifest_ref="release.json",
-        terraform_state_ref="tfstate/1",
-        change_ref="issue/1",
+        release_manifest_ref="release-manifests/local-dev.json",
+        terraform_state_ref="terraform-state/local-docker-airflow.json",
+        change_ref="changes/local-dev.json",
         gold_table_bucket="gold-bucket",
         gold_namespace="edgar",
         gold_table="filings",
         job_refs={"ingest": "jobs/ingest/edgar_ingest.py"},
+        source_control={
+            "git_commit_sha": "abc123",
+            "git_branch": "main",
+            "repository_url": "https://github.com/example/repo",
+        },
+        code_bundle={"artifacts": {"ingest": {"path": "jobs/ingest/edgar_ingest.py"}}},
+        attestation={"available": False},
+    )
+    manifest = record_reference_checks(
+        manifest,
+        validate_governance_references(
+            release_manifest_ref="release-manifests/local-dev.json",
+            terraform_state_ref="terraform-state/local-docker-airflow.json",
+            change_ref="changes/local-dev.json",
+        ),
     )
     manifest = record_ingest_outputs(
         manifest,
@@ -62,6 +80,15 @@ def test_manifest_generation_captures_required_governance_fields() -> None:
         },
     )
     manifest = finalize_manifest(manifest, "succeeded")
+    manifest = record_metadata_refs(
+        manifest,
+        {
+            "openmetadata_run_path": "/tmp/metadata/run-record.json",
+            "openmetadata_dataset_path": "/tmp/metadata/dataset-record.json",
+            "audit_chain_path": "/tmp/metadata/audit-chain.json",
+            "openlineage_event_path": "/tmp/metadata/openlineage.json",
+        },
+    )
 
     assert manifest["gold_table_bucket"] == "gold-bucket"
     assert manifest["gold_namespace"] == "edgar"

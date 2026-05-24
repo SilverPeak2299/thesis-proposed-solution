@@ -54,8 +54,8 @@ def build_sample_config(source_uri: str, dataset_date: str) -> PipelineRuntimeCo
         ),
         governance=GovernanceRefs(
             release_manifest_ref="release-manifests/dev-edgar-v1.json",
-            terraform_state_ref="terraform-state/dev/serial-0001",
-            change_ref="issue/EDGAR-1",
+            terraform_state_ref="terraform-state/dev/serial-0001.json",
+            change_ref="changes/EDGAR-1.json",
         ),
     )
 

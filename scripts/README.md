@@ -7,6 +7,7 @@ Planned contents:
 - release manifest helpers
 - audit reconstruction helpers
 - replay and evidence inspection utilities
+- manifest validation helpers with governance reference checks
 
 Local support is intentionally light. AWS remains the primary runtime target.
 

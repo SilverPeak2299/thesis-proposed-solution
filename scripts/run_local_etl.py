@@ -22,11 +22,19 @@ from jobs.transform.edgar_transform import DEFAULT_CONTRACT_PATH, run_transform
 from thesis_proposed_solution.manifests import (
     create_initial_manifest,
     finalize_manifest,
+    record_metadata_refs,
+    record_reference_checks,
     record_ingest_outputs,
     record_promotion_result,
     record_quality_result,
     record_transform_outputs,
     validate_manifest,
+)
+from thesis_proposed_solution.metadata import (
+    capture_run_provenance,
+    missing_reference_errors,
+    publish_run_metadata,
+    validate_governance_references,
 )
 from thesis_proposed_solution.runtime_config import (
     PipelineRuntimeConfig,
@@ -98,11 +106,23 @@ def _build_config(args: argparse.Namespace) -> PipelineRuntimeConfig:
 
 def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, contract_path: str = DEFAULT_CONTRACT_PATH) -> dict:
     effective_run_id = run_id or f"run-{uuid4().hex[:12]}"
+    reference_checks = validate_governance_references(
+        release_manifest_ref=config.governance.release_manifest_ref,
+        terraform_state_ref=config.governance.terraform_state_ref,
+        change_ref=config.governance.change_ref,
+    )
+    reference_errors = missing_reference_errors(reference_checks)
+    if reference_errors:
+        raise ValueError(f"Governance references are invalid: {reference_errors}")
     manifest_target = build_manifest_target(
         config.object_storage,
         pipeline_id=config.pipeline_id,
         dataset_date=config.dataset_date,
         run_id=effective_run_id,
+    )
+    provenance = capture_run_provenance(
+        job_refs=JOB_REFS,
+        release_manifest_ref=config.governance.release_manifest_ref,
     )
     manifest = create_initial_manifest(
         run_id=effective_run_id,
@@ -116,7 +136,11 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
         gold_namespace=config.gold_table.gold_namespace,
         gold_table=config.gold_table.gold_table,
         job_refs=JOB_REFS,
+        source_control=provenance["source_control"],
+        code_bundle=provenance["code_bundle"],
+        attestation=provenance["attestation"],
     )
+    manifest = record_reference_checks(manifest, reference_checks)
     write_json_target(manifest_target, manifest)
 
     ingest_summary = run_ingest(
@@ -203,6 +227,14 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
     else:
         manifest = finalize_manifest(manifest, "failed_quality")
 
+    manifest = record_metadata_refs(
+        manifest,
+        publish_run_metadata(
+            manifest,
+            manifest_ref=manifest_target.uri,
+            local_base_dir=config.object_storage.local_base_dir,
+        ),
+    )
     write_json_target(manifest_target, manifest)
     errors = validate_manifest(manifest)
     if errors:

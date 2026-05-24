@@ -1,0 +1,6 @@
+{
+  "state_id": "local-docker-airflow",
+  "runtime": "docker-airflow",
+  "environment": "local",
+  "mwaa_enabled": false
+}
