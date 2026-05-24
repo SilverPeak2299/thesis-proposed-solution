@@ -123,6 +123,7 @@ def run_pipeline(config: PipelineRuntimeConfig, *, run_id: str | None = None, co
     provenance = capture_run_provenance(
         job_refs=JOB_REFS,
         release_manifest_ref=config.governance.release_manifest_ref,
+        change_ref=config.governance.change_ref,
     )
     manifest = create_initial_manifest(
         run_id=effective_run_id,

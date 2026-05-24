@@ -80,6 +80,11 @@ including:
 - an OpenMetadata-style gold dataset record
 - an audit-chain record keyed by `dataset_version`
 
+For thesis-quality provenance, prefer generated release inputs from the
+`Release Controls` GitHub workflow instead of the placeholder `local-dev`
+records. That workflow now emits an attested release bundle plus matching files
+under `release-manifests/`, `changes/`, and `runtime-configs/`.
+
 When the local OpenMetadata service is running, the DAG finalization step also
 logs into OpenMetadata and submits the same completion event to the live
 OpenLineage ingestion endpoint at `/api/v1/openlineage/lineage`.

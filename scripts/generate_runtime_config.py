@@ -53,9 +53,9 @@ def build_sample_config(source_uri: str, dataset_date: str) -> PipelineRuntimeCo
             local_tables_dir=Path(".local-data/s3-tables"),
         ),
         governance=GovernanceRefs(
-            release_manifest_ref="release-manifests/dev-edgar-v1.json",
-            terraform_state_ref="terraform-state/dev/serial-0001.json",
-            change_ref="changes/EDGAR-1.json",
+            release_manifest_ref="release-manifests/local-dev.json",
+            terraform_state_ref="terraform-state/local-docker-airflow.json",
+            change_ref="changes/local-dev.json",
         ),
     )
 

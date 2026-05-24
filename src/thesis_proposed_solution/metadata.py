@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 from configparser import ConfigParser
+from copy import deepcopy
 from base64 import b64encode
 from pathlib import Path
 from typing import Any
@@ -263,6 +264,29 @@ def _load_json_file(path: Path) -> dict[str, Any] | None:
     return payload if isinstance(payload, dict) else None
 
 
+def _load_reference_payload(
+    reference: str | None,
+    *,
+    repository_root: Path = REPOSITORY_ROOT,
+) -> dict[str, Any] | None:
+    if not reference:
+        return None
+    resolved = resolve_reference(reference, repository_root=repository_root)
+    if resolved is None:
+        return None
+    path = Path(resolved)
+    if not path.exists():
+        return None
+    return _load_json_file(path)
+
+
+def _first_non_empty(*values: Any) -> Any:
+    for value in values:
+        if value not in (None, ""):
+            return value
+    return None
+
+
 def capture_code_bundle_provenance(
     *,
     job_refs: dict[str, str],
@@ -309,11 +333,34 @@ def capture_code_bundle_provenance(
     return {
         "release_manifest_ref": release_manifest_ref,
         "release_manifest_sha256": release_manifest_digest,
+        "artifact_bundle": (
+            deepcopy(release_manifest_payload.get("artifact_bundle"))
+            if isinstance(release_manifest_payload, dict)
+            and isinstance(release_manifest_payload.get("artifact_bundle"), dict)
+            else None
+        ),
         "artifacts": artifacts,
     }
 
 
-def capture_attestation_provenance(source_control: dict[str, Any]) -> dict[str, Any]:
+def capture_attestation_provenance(
+    source_control: dict[str, Any],
+    *,
+    release_manifest_payload: dict[str, Any] | None = None,
+    change_payload: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    release_attestation = (
+        release_manifest_payload.get("attestation")
+        if isinstance(release_manifest_payload, dict)
+        and isinstance(release_manifest_payload.get("attestation"), dict)
+        else {}
+    )
+    change_attestation = (
+        change_payload.get("attestation")
+        if isinstance(change_payload, dict)
+        and isinstance(change_payload.get("attestation"), dict)
+        else {}
+    )
     github_run_id = os.getenv("GITHUB_RUN_ID")
     github_repository = os.getenv("GITHUB_REPOSITORY")
     github_server_url = os.getenv("GITHUB_SERVER_URL", "https://github.com")
@@ -321,21 +368,55 @@ def capture_attestation_provenance(source_control: dict[str, Any]) -> dict[str, 
     if github_run_id and github_repository:
         github_run_url = f"{github_server_url.rstrip('/')}/{github_repository}/actions/runs/{github_run_id}"
 
-    attestation_ref = (
-        os.getenv("GITHUB_ATTESTATION_REF")
-        or os.getenv("GITHUB_BUILD_PROVENANCE_REF")
-        or os.getenv("GITHUB_PROVENANCE_REF")
+    attestation_ref = _first_non_empty(
+        os.getenv("GITHUB_ATTESTATION_REF"),
+        os.getenv("GITHUB_BUILD_PROVENANCE_REF"),
+        os.getenv("GITHUB_PROVENANCE_REF"),
+        release_attestation.get("attestation_ref"),
+        change_attestation.get("attestation_ref"),
     )
-    attestation_url = os.getenv("GITHUB_ATTESTATION_URL")
+    attestation_url = _first_non_empty(
+        os.getenv("GITHUB_ATTESTATION_URL"),
+        release_attestation.get("attestation_url"),
+        change_attestation.get("attestation_url"),
+    )
     if attestation_url is None and isinstance(attestation_ref, str) and attestation_ref.startswith("http"):
         attestation_url = attestation_ref
 
-    subject_digest = (
-        os.getenv("GITHUB_ATTESTATION_SUBJECT_DIGEST")
-        or os.getenv("GITHUB_BUILD_PROVENANCE_SUBJECT_DIGEST")
+    subject_digest = _first_non_empty(
+        os.getenv("GITHUB_ATTESTATION_SUBJECT_DIGEST"),
+        os.getenv("GITHUB_BUILD_PROVENANCE_SUBJECT_DIGEST"),
+        release_attestation.get("subject_digest"),
+        change_attestation.get("subject_digest"),
     )
-    workflow_ref = os.getenv("GITHUB_WORKFLOW_REF")
-    commit_sha = os.getenv("GITHUB_SHA") or source_control.get("git_commit_sha")
+    workflow_ref = _first_non_empty(
+        os.getenv("GITHUB_WORKFLOW_REF"),
+        release_attestation.get("github_workflow_ref"),
+        change_attestation.get("github_workflow_ref"),
+    )
+    github_run_id = _first_non_empty(
+        github_run_id,
+        release_attestation.get("github_run_id"),
+        change_attestation.get("github_run_id"),
+    )
+    github_repository = _first_non_empty(
+        github_repository,
+        release_attestation.get("github_repository"),
+        change_attestation.get("github_repository"),
+    )
+    github_run_url = _first_non_empty(
+        github_run_url,
+        release_attestation.get("github_run_url"),
+        change_attestation.get("github_run_url"),
+    )
+    if github_run_url is None and github_run_id and github_repository:
+        github_run_url = f"{github_server_url.rstrip('/')}/{github_repository}/actions/runs/{github_run_id}"
+    commit_sha = _first_non_empty(
+        os.getenv("GITHUB_SHA"),
+        source_control.get("git_commit_sha"),
+        release_attestation.get("commit_sha"),
+        change_attestation.get("commit_sha"),
+    )
 
     return {
         "available": any(
@@ -363,9 +444,63 @@ def capture_run_provenance(
     *,
     job_refs: dict[str, str],
     release_manifest_ref: str,
+    change_ref: str | None = None,
     repository_root: Path = REPOSITORY_ROOT,
 ) -> dict[str, dict[str, Any]]:
+    release_manifest_payload = _load_reference_payload(
+        release_manifest_ref,
+        repository_root=repository_root,
+    )
+    change_payload = _load_reference_payload(
+        change_ref,
+        repository_root=repository_root,
+    )
+    release_source_control = (
+        release_manifest_payload.get("source_control")
+        if isinstance(release_manifest_payload, dict)
+        and isinstance(release_manifest_payload.get("source_control"), dict)
+        else {}
+    )
+    change_source_control = (
+        change_payload.get("source_control")
+        if isinstance(change_payload, dict)
+        and isinstance(change_payload.get("source_control"), dict)
+        else {}
+    )
     source_control = capture_source_control_provenance(repository_root=repository_root)
+    source_control = {
+        "git_commit_sha": _first_non_empty(
+            source_control.get("git_commit_sha"),
+            release_source_control.get("git_commit_sha"),
+            change_source_control.get("git_commit_sha"),
+        ),
+        "git_branch": _first_non_empty(
+            source_control.get("git_branch"),
+            release_source_control.get("git_branch"),
+            change_source_control.get("git_branch"),
+        ),
+        "repository_url": _first_non_empty(
+            source_control.get("repository_url"),
+            release_source_control.get("repository_url"),
+            change_source_control.get("repository_url"),
+        ),
+        "commit_url": _first_non_empty(
+            source_control.get("commit_url"),
+            release_source_control.get("commit_url"),
+            change_source_control.get("commit_url"),
+        ),
+        "git_worktree_dirty": _first_non_empty(
+            source_control.get("git_worktree_dirty"),
+            release_source_control.get("git_worktree_dirty"),
+            change_source_control.get("git_worktree_dirty"),
+        ),
+        "repository_root": source_control.get("repository_root"),
+    }
+    if source_control["commit_url"] is None:
+        source_control["commit_url"] = _commit_url(
+            source_control.get("repository_url"),
+            source_control.get("git_commit_sha"),
+        )
     return {
         "source_control": source_control,
         "code_bundle": capture_code_bundle_provenance(
@@ -373,7 +508,11 @@ def capture_run_provenance(
             release_manifest_ref=release_manifest_ref,
             repository_root=repository_root,
         ),
-        "attestation": capture_attestation_provenance(source_control),
+        "attestation": capture_attestation_provenance(
+            source_control,
+            release_manifest_payload=release_manifest_payload,
+            change_payload=change_payload,
+        ),
     }
 
 

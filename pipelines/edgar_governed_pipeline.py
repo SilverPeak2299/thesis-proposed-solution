@@ -97,6 +97,7 @@ def _create_base_manifest(conf: Mapping[str, Any], run_id: str) -> dict[str, Any
     provenance = capture_run_provenance(
         job_refs=JOB_REFS,
         release_manifest_ref=conf["release_manifest_ref"],
+        change_ref=conf["change_ref"],
     )
     return create_initial_manifest(
         run_id=run_id,

@@ -6,11 +6,96 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
 jobs:
-  placeholder:
+  package-and-attest-release:
     runs-on: ubuntu-latest
     steps:
-      - name: Stage 1 placeholder
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compute release identifiers
+        id: release-id
         run: |
-          echo "Reserved for release controls."
-          echo "Intended scope: packaging, release manifest generation, and attestation linkage."
+          echo "short_sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          echo "release_id=release-main-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Prepare release-control workspace
+        run: |
+          mkdir -p build/release-controls
+          mkdir -p release-manifests changes runtime-configs
+
+      - name: Build governed release bundle
+        run: |
+          zip -r build/release-controls/governed-release-bundle.zip \
+            pipelines \
+            jobs \
+            contracts \
+            scripts \
+            src \
+            docker-compose.airflow.yml \
+            pyproject.toml \
+            README.md
+
+      - name: Compute release bundle digest
+        id: bundle-digest
+        run: |
+          echo "sha256=$(sha256sum build/release-controls/governed-release-bundle.zip | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "subject_digest=sha256:$(sha256sum build/release-controls/governed-release-bundle.zip | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate artifact attestation
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-path: build/release-controls/governed-release-bundle.zip
+          create-storage-record: false
+
+      - name: Copy Sigstore bundle into release evidence
+        run: |
+          cp "${{ steps.attest.outputs.bundle-path }}" build/release-controls/governed-release-attestation.json
+
+      - name: Generate release governance records
+        run: |
+          python scripts/build_release_bundle.py \
+            --release-manifest-output "release-manifests/${{ steps.release-id.outputs.release_id }}.json" \
+            --change-output "changes/${{ steps.release-id.outputs.release_id }}.json" \
+            --runtime-config-output "runtime-configs/${{ steps.release-id.outputs.release_id }}.json" \
+            --summary-output "build/release-controls/release-governance-summary.json" \
+            --release-id "${{ steps.release-id.outputs.release_id }}" \
+            --change-id "${{ steps.release-id.outputs.release_id }}" \
+            --artifact-bundle-path "build/release-controls/governed-release-bundle.zip" \
+            --artifact-bundle-sha256 "${{ steps.bundle-digest.outputs.sha256 }}" \
+            --artifact-attestation-bundle-path "build/release-controls/governed-release-attestation.json" \
+            --attestation-id "${{ steps.attest.outputs.attestation-id }}" \
+            --attestation-url "${{ steps.attest.outputs.attestation-url }}" \
+            --subject-digest "${{ steps.bundle-digest.outputs.subject_digest }}" \
+            --github-server-url "${{ github.server_url }}" \
+            --github-repository "${{ github.repository }}" \
+            --github-sha "${{ github.sha }}" \
+            --github-ref-name "${{ github.ref_name }}" \
+            --github-run-id "${{ github.run_id }}" \
+            --github-run-attempt "${{ github.run_attempt }}" \
+            --github-run-number "${{ github.run_number }}" \
+            --github-workflow "${{ github.workflow }}" \
+            --github-workflow-ref "${{ github.workflow_ref }}"
+
+      - name: Upload release control evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-controls-${{ github.sha }}
+          path: |
+            build/release-controls
+            release-manifests/${{ steps.release-id.outputs.release_id }}.json
+            changes/${{ steps.release-id.outputs.release_id }}.json
+            runtime-configs/${{ steps.release-id.outputs.release_id }}.json

@@ -31,6 +31,20 @@ Before opening a PR, capture:
 - the evidence, control, and runtime impact
 - any follow-up work that later stages must complete
 
+## Release provenance rehearsal
+
+After changes are merged or pushed to `main`, the `Release Controls` workflow is
+the governed path for producing:
+
+- the attested release bundle
+- the generated release manifest
+- the generated change record
+- the generated runtime config used for later local DAG execution
+
+When collecting evaluation evidence, prefer using those generated artifacts over
+handwritten local placeholders so the row-to-commit and row-to-attestation
+chains stay intact.
+
 ## Updating Docs
 
 If a change affects the meaning of the architecture, release model, or evidence

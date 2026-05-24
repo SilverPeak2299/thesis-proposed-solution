@@ -8,5 +8,28 @@
     "quality": "jobs/quality/curated_quality_gate.py",
     "promote": "jobs/promote/promote_to_s3_table.py"
   },
-  "notes": "Local Docker Airflow development release manifest."
+  "notes": "Local Docker Airflow development release manifest.",
+  "source_control": {
+    "git_commit_sha": null,
+    "git_branch": null,
+    "repository_url": null,
+    "commit_url": null
+  },
+  "artifact_bundle": {
+    "path": null,
+    "sha256": null,
+    "subject_digest": null,
+    "attestation_bundle_path": null
+  },
+  "attestation": {
+    "available": false,
+    "provider": "github",
+    "attestation_ref": null,
+    "attestation_url": null,
+    "subject_digest": null,
+    "github_run_id": null,
+    "github_run_url": null,
+    "github_workflow_ref": null,
+    "commit_sha": null
+  }
 }

@@ -24,5 +24,14 @@ Stage 1 scaffolding now reserves the main implementation areas:
 - `release-manifests/` for sample logical release manifests used by local validation
 - `terraform-state/` for sample Terraform state reference records used by local validation
 - `changes/` for sample change records used by local validation
+- `runtime-configs/` for generated runtime inputs tied to governed release evidence
 - `src/` for shared Python code
 - `tests/` for future test coverage
+
+The `Release Controls` GitHub Actions workflow now packages an attested release
+bundle and emits:
+
+- a generated release manifest under `release-manifests/`
+- a generated change record under `changes/`
+- a generated runtime config under `runtime-configs/`
+- release evidence and the Sigstore attestation bundle under `build/release-controls/`

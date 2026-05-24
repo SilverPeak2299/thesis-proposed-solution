@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from thesis_proposed_solution.metadata import (
+    capture_run_provenance,
     missing_reference_errors,
     publish_metadata_artifacts,
     publish_run_metadata,
@@ -234,3 +235,61 @@ def test_publish_run_metadata_posts_openlineage_to_openmetadata(monkeypatch, tmp
     assert observed_requests[4]["url"] == "http://openmetadata-server:8585/api/v1/containers"
     assert observed_requests[-1]["body"]["eventType"] == "COMPLETE"
     assert observed_requests[-1]["body"]["job"]["namespace"] == "thesis_local_airflow"
+
+
+def test_capture_run_provenance_falls_back_to_release_context_files(tmp_path: Path) -> None:
+    release_manifest = tmp_path / "release.json"
+    change_record = tmp_path / "change.json"
+    release_manifest.write_text(
+        json.dumps(
+            {
+                "source_control": {
+                    "git_commit_sha": "deadbeef",
+                    "git_branch": "main",
+                    "repository_url": "https://github.com/example/repo",
+                    "commit_url": "https://github.com/example/repo/commit/deadbeef",
+                },
+                "artifact_bundle": {
+                    "path": "build/release-controls/governed-release-bundle.zip",
+                    "sha256": "abc123",
+                },
+                "attestation": {
+                    "available": True,
+                    "provider": "github",
+                    "attestation_ref": "gh://attestations/77",
+                    "attestation_url": "https://github.com/example/repo/attestations/77",
+                    "subject_digest": "sha256:abc123",
+                    "github_run_id": "101",
+                    "github_run_url": "https://github.com/example/repo/actions/runs/101",
+                    "github_workflow_ref": "example/repo/.github/workflows/release-controls.yml@refs/heads/main",
+                    "commit_sha": "deadbeef",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    change_record.write_text(
+        json.dumps(
+            {
+                "attestation": {
+                    "available": True,
+                    "provider": "github",
+                    "attestation_ref": "gh://attestations/77",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    provenance = capture_run_provenance(
+        job_refs={},
+        release_manifest_ref=str(release_manifest),
+        change_ref=str(change_record),
+        repository_root=tmp_path,
+    )
+
+    assert provenance["source_control"]["git_commit_sha"] == "deadbeef"
+    assert provenance["source_control"]["repository_url"] == "https://github.com/example/repo"
+    assert provenance["code_bundle"]["artifact_bundle"]["sha256"] == "abc123"
+    assert provenance["attestation"]["attestation_ref"] == "gh://attestations/77"
+    assert provenance["attestation"]["subject_digest"] == "sha256:abc123"
